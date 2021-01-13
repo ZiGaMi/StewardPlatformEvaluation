@@ -105,7 +105,7 @@ VESTIBULAR_Z_K          = 0.4
 # ===============================================================================
 def calc_rot_mov_coefficient(Tl, Ts, Ta, fs):
 
-    b, a = bilinear( [1/Ts, 0, 0], [1, (1/Ta + 1/Tl + 1/Ts), (1/Tl*Ts + 1/Tl*Ta + 1/Ta*Ts), 1/(Ta*Tl*Ts)], fs )
+    b, a = bilinear( [0, 1/Ts, 0, 0], [1, (1/Ta + 1/Tl + 1/Ts), (1/Tl*Ts + 1/Tl*Ta + 1/Ta*Ts), 1/(Ta*Tl*Ts)], fs )
 
     return b, a
 
@@ -121,7 +121,7 @@ def calc_rot_mov_coefficient(Tl, Ts, Ta, fs):
 # ===============================================================================
 def calc_lin_mov_coefficient(Tl, Ts, Ta, K, fs):
 
-    b, a = bilinear( [(K*Ta/(Tl*Ts)), (K*Ta/(Tl*Ts))], [1, (1/Tl + 1/Ts), 1/(Tl*Ts)], fs )
+    b, a = bilinear( [0, K*Ta, K], [ Tl*Ts, Tl+Ts, 1], fs )
 
     return b, a
 
@@ -159,13 +159,14 @@ if __name__ == "__main__":
     _yaw_filt   = IIR( a=_yaw_a,    b=_yaw_b,   order=3 )
 
     # Get frequency characteristics
-    _roll_w, _roll_h    = freqz( _roll_b,  _roll_a,    4096 * 256 )
-    _pitch_w, _pitch_h  = freqz( _pitch_b, _pitch_a,   4096 * 256 )
-    _yaw_w, _yaw_h      = freqz( _yaw_b,   _yaw_a,     4096 * 256 )
+    N = 256
+    _roll_w, _roll_h    = freqz( _roll_b,  _roll_a,    4096 * N )
+    #_pitch_w, _pitch_h  = freqz( _pitch_b, _pitch_a,   4096 * N )
+    #_yaw_w, _yaw_h      = freqz( _yaw_b,   _yaw_a,     4096 * N )
 
-    _x_w, _x_h = freqz( _x_b, _x_a, 4096 * 256 )
-    _y_w, _y_h = freqz( _y_b, _y_a, 4096 * 256 )
-    _z_w, _z_h = freqz( _z_b, _z_a, 4096 * 256 )
+    _x_w, _x_h = freqz( _x_b, _x_a, 4096 * N )
+    #_y_w, _y_h = freqz( _y_b, _y_a, 4096 * N )
+    #_z_w, _z_h = freqz( _z_b, _z_a, 4096 * N )
 
     # Filter input/output
     _x = [ 0 ] * SAMPLE_NUM
@@ -220,38 +221,38 @@ if __name__ == "__main__":
 
     # Calculate frequency response
     _roll_w     = ( _roll_w / np.pi * SAMPLE_FREQ / 2)  # Hz
-    _pitch_w    = ( _pitch_w / np.pi * SAMPLE_FREQ / 2) # Hz
-    _yaw_w      = ( _yaw_w / np.pi * SAMPLE_FREQ / 2)   # Hz
+    #_pitch_w    = ( _pitch_w / np.pi * SAMPLE_FREQ / 2) # Hz
+    #_yaw_w      = ( _yaw_w / np.pi * SAMPLE_FREQ / 2)   # Hz
 
     _x_w = ( _x_w / np.pi * SAMPLE_FREQ / 2)  # Hz
-    _y_w = ( _y_w / np.pi * SAMPLE_FREQ / 2)  # Hz
-    _z_w = ( _z_w / np.pi * SAMPLE_FREQ / 2)  # Hz
+    #_y_w = ( _y_w / np.pi * SAMPLE_FREQ / 2)  # Hz
+    #_z_w = ( _z_w / np.pi * SAMPLE_FREQ / 2)  # Hz
 
     # For conversion to rad/s
     _roll_w = 2*np.pi*_roll_w  
-    _pitch_w = 2*np.pi*_pitch_w  
-    _yaw_w = 2*np.pi*_yaw_w  
+    #_pitch_w = 2*np.pi*_pitch_w  
+    #_yaw_w = 2*np.pi*_yaw_w  
 
     _x_w = 2*np.pi*_x_w  
-    _y_w = 2*np.pi*_y_w  
-    _z_w = 2*np.pi*_z_w  
+    #_y_w = 2*np.pi*_y_w  
+    #_z_w = 2*np.pi*_z_w  
 
     # Calculate phases & convert to degrees
     _roll_angle     = np.unwrap( np.angle(_roll_h) )    * 180/np.pi
-    _pitch_angle    = np.unwrap( np.angle(_pitch_h) )   * 180/np.pi
-    _yaw_angle      = np.unwrap( np.angle(_yaw_h) )     * 180/np.pi
+    #_pitch_angle    = np.unwrap( np.angle(_pitch_h) )   * 180/np.pi
+    #_yaw_angle      = np.unwrap( np.angle(_yaw_h) )     * 180/np.pi
 
     _x_angle = np.unwrap( np.angle(_x_h) )     * 180/np.pi
-    _y_angle = np.unwrap( np.angle(_y_h) )     * 180/np.pi
-    _z_angle = np.unwrap( np.angle(_z_h) )     * 180/np.pi
+    #_y_angle = np.unwrap( np.angle(_y_h) )     * 180/np.pi
+    #_z_angle = np.unwrap( np.angle(_z_h) )     * 180/np.pi
 
     # Plot results
     fig, ax = plt.subplots(2, 1)
     fig.suptitle( "ROTATION MOVEMENT MODEL\n fs: " + str(SAMPLE_FREQ) + "Hz", fontsize=20 )
 
     ax[0].plot(_roll_w,     20 * np.log10(abs(_roll_h)),    'g', label="roll")
-    ax[0].plot(_pitch_w,    20 * np.log10(abs(_pitch_h)),   'r', label="pitch")
-    ax[0].plot(_yaw_w,      20 * np.log10(abs(_yaw_h)),     'b', label="yaw")
+    #ax[0].plot(_pitch_w,    20 * np.log10(abs(_pitch_h)),   'r', label="pitch")
+    #ax[0].plot(_yaw_w,      20 * np.log10(abs(_yaw_h)),     'b', label="yaw")
 
     ax[0].grid()
     ax[0].set_xscale("log")
@@ -262,40 +263,40 @@ if __name__ == "__main__":
 
 
     ax[1].plot(_roll_w,     _roll_angle,    'g', label="roll")
-    ax[1].plot(_pitch_w,    _pitch_angle,   'r', label="pitch")
-    ax[1].plot(_yaw_w,      _yaw_angle,     'b', label="yaw")
+    #ax[1].plot(_pitch_w,    _pitch_angle,   'r', label="pitch")
+    #ax[1].plot(_yaw_w,      _yaw_angle,     'b', label="yaw")
 
-    ax[1].set_ylabel("Angle [degrees]")
+    ax[1].set_ylabel("Phase [deg]")
     ax[1].set_xscale("log")
     ax[1].grid()
     ax[1].legend(loc="upper right")
     ax[1].set_xlim(1e-3, SAMPLE_FREQ/2)
-    ax[1].set_xlabel("Frequency [Hz]")
+    ax[1].set_xlabel("Frequency [rad/s]")
 
     fig, ax = plt.subplots(2, 1)
     fig.suptitle( "LINEAR MOVEMENT MODEL\n fs: " + str(SAMPLE_FREQ) + "Hz", fontsize=20 )
 
     ax[0].plot(_x_w, 20 * np.log10(abs(_x_h)), 'g', label="x")
-    ax[0].plot(_y_w, 20 * np.log10(abs(_y_h)), 'r', label="y")
-    ax[0].plot(_z_w, 20 * np.log10(abs(_z_h)), 'b', label="z")
+    #ax[0].plot(_y_w, 20 * np.log10(abs(_y_h)), 'r', label="y")
+    #ax[0].plot(_z_w, 20 * np.log10(abs(_z_h)), 'b', label="z")
 
     ax[0].grid()
     ax[0].set_xscale("log")
     ax[0].legend(loc="upper right")
     ax[0].set_xlim(1e-3, SAMPLE_FREQ/2)
-   # ax[0].set_ylim(-80, 2)
+    ax[0].set_ylim(-40, 1)
     ax[0].set_ylabel("Magnitude [dB]")
 
     ax[1].plot(_x_w, _x_angle, 'g', label="x")
-    ax[1].plot(_y_w, _y_angle, 'r', label="y")
-    ax[1].plot(_z_w, _z_angle, 'b', label="z")
+    #ax[1].plot(_y_w, _y_angle, 'r', label="y")
+    #ax[1].plot(_z_w, _z_angle, 'b', label="z")
 
-    ax[1].set_ylabel("Angle [degrees]")
+    ax[1].set_ylabel("Phase [deg]")
     ax[1].set_xscale("log")
     ax[1].grid()
     ax[1].legend(loc="upper right")
     ax[1].set_xlim(1e-3, SAMPLE_FREQ/2)
-    ax[1].set_xlabel("Frequency [Hz]")
+    ax[1].set_xlabel("Frequency [rad/s]")
 
     plt.show()
     
