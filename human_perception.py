@@ -41,10 +41,10 @@ IDEAL_SAMPLE_FREQ = 20000.0
 ## Time window
 #
 # Unit: second
-TIME_WINDOW = 2
+TIME_WINDOW = 10
 
 ## Input signal shape
-INPUT_SIGNAL_FREQ = 0.1
+INPUT_SIGNAL_FREQ = 0.125
 INPUT_SIGNAL_AMPLITUDE = 0.5
 INPUT_SIGNAL_OFFSET = 0.0
 INPUT_SIGNAL_PHASE = -0.25
@@ -158,6 +158,8 @@ if __name__ == "__main__":
     _pitch_filt = IIR( a=_pitch_a,  b=_pitch_b, order=3 )
     _yaw_filt   = IIR( a=_yaw_a,    b=_yaw_b,   order=3 )
 
+    _x_filt = IIR( a=_x_a, b=_x_b, order=2 )
+
     # Get frequency characteristics
     N = 256
     _roll_w, _roll_h    = freqz( _roll_b,  _roll_a,    4096 * N )
@@ -171,6 +173,9 @@ if __name__ == "__main__":
     # Filter input/output
     _x = [ 0 ] * SAMPLE_NUM
     _x_d = [0]
+
+    _y_d_roll = [0]
+    _y_d_x = [0]
 
     # Position
     _y_d_p = [[0], [0], [0]] * 3
@@ -214,6 +219,10 @@ if __name__ == "__main__":
             _d_time.append( _time[n])
             _x_d.append( _x[n] )
 
+            # Rotation sensed
+            _y_d_roll.append( _roll_filt.update( _x[n] ))
+            _y_d_x.append( _x_filt.update( _x[n] ))
+
 
         else:
             _downsamp_cnt += 1
@@ -246,57 +255,87 @@ if __name__ == "__main__":
     #_y_angle = np.unwrap( np.angle(_y_h) )     * 180/np.pi
     #_z_angle = np.unwrap( np.angle(_z_h) )     * 180/np.pi
 
-    # Plot results
-    fig, ax = plt.subplots(2, 1)
+    
+
+
+    ## ==============================================================================================
+    # Rotation motion plots
+    ## ==============================================================================================
+    fig, ax = plt.subplots(2, 2)
     fig.suptitle( "ROTATION MOVEMENT MODEL\n fs: " + str(SAMPLE_FREQ) + "Hz", fontsize=20 )
 
-    ax[0].plot(_roll_w,     20 * np.log10(abs(_roll_h)),    'g', label="roll")
-    #ax[0].plot(_pitch_w,    20 * np.log10(abs(_pitch_h)),   'r', label="pitch")
-    #ax[0].plot(_yaw_w,      20 * np.log10(abs(_yaw_h)),     'b', label="yaw")
+    ax[0][0].plot(_roll_w,     20 * np.log10(abs(_roll_h)),    'g', label="roll")
+    #ax[0][0].plot(_pitch_w,    20 * np.log10(abs(_pitch_h)),   'r', label="pitch")
+    #ax[0][0].plot(_yaw_w,      20 * np.log10(abs(_yaw_h)),     'b', label="yaw")
 
-    ax[0].grid()
-    ax[0].set_xscale("log")
-    ax[0].legend(loc="upper right")
-    ax[0].set_xlim(1e-3, SAMPLE_FREQ/2)
-    ax[0].set_ylim(-80, 2)
-    ax[0].set_ylabel("Magnitude [dB]")
+    ax[0][0].grid()
+    ax[0][0].set_xscale("log")
+    #ax[0][0].legend(loc="upper right")
+    ax[0][0].set_xlim(1e-3, SAMPLE_FREQ/2)
+    ax[0][0].set_ylim(-80, 2)
+    ax[0][0].set_ylabel("Magnitude [dB]")
 
 
-    ax[1].plot(_roll_w,     _roll_angle,    'g', label="roll")
-    #ax[1].plot(_pitch_w,    _pitch_angle,   'r', label="pitch")
-    #ax[1].plot(_yaw_w,      _yaw_angle,     'b', label="yaw")
+    ax[1][0].plot(_roll_w,     _roll_angle,    'g', label="roll")
+    #ax[1][0].plot(_pitch_w,    _pitch_angle,   'r', label="pitch")
+    #ax[1][0].plot(_yaw_w,      _yaw_angle,     'b', label="yaw")
 
-    ax[1].set_ylabel("Phase [deg]")
-    ax[1].set_xscale("log")
-    ax[1].grid()
-    ax[1].legend(loc="upper right")
-    ax[1].set_xlim(1e-3, SAMPLE_FREQ/2)
-    ax[1].set_xlabel("Frequency [rad/s]")
+    ax[1][0].set_ylabel("Phase [deg]")
+    ax[1][0].set_xscale("log")
+    ax[1][0].grid()
+    #ax[1][0].legend(loc="upper right")
+    ax[1][0].set_xlim(1e-3, SAMPLE_FREQ/2)
+    ax[1][0].set_xlabel("Frequency [rad/s]")
 
-    fig, ax = plt.subplots(2, 1)
+
+    ax[0][1].plot( _time, _x,                  "b",    label="Input-generated" )
+    #ax[0][1].plot( _d_time, _downsamp_samp,    "r.",   label="Sample points")
+    ax[0][1].plot( _d_time, _y_d_roll,          ".-g",    label="Roll sensation")
+    ax[0][1].grid()
+    ax[0][1].set_xlim(0, 8)
+
+    ax[1][1].grid()
+    ax[1][1].set_xlabel("Time [s]")
+
+
+    ## ==============================================================================================
+    # Linear motion plots
+    ## ==============================================================================================
+    fig, ax = plt.subplots(2, 2)
     fig.suptitle( "LINEAR MOVEMENT MODEL\n fs: " + str(SAMPLE_FREQ) + "Hz", fontsize=20 )
 
-    ax[0].plot(_x_w, 20 * np.log10(abs(_x_h)), 'g', label="x")
-    #ax[0].plot(_y_w, 20 * np.log10(abs(_y_h)), 'r', label="y")
-    #ax[0].plot(_z_w, 20 * np.log10(abs(_z_h)), 'b', label="z")
+    ax[0][0].plot(_x_w, 20 * np.log10(abs(_x_h)), 'g', label="x")
+    #ax[0][0].plot(_y_w, 20 * np.log10(abs(_y_h)), 'r', label="y")
+    #ax[0][0].plot(_z_w, 20 * np.log10(abs(_z_h)), 'b', label="z")
 
-    ax[0].grid()
-    ax[0].set_xscale("log")
-    ax[0].legend(loc="upper right")
-    ax[0].set_xlim(1e-3, SAMPLE_FREQ/2)
-    ax[0].set_ylim(-40, 1)
-    ax[0].set_ylabel("Magnitude [dB]")
+    ax[0][0].grid()
+    ax[0][0].set_xscale("log")
+    ax[0][0].legend(loc="upper right")
+    ax[0][0].set_xlim(1e-3, SAMPLE_FREQ/2)
+    ax[0][0].set_ylim(-40, 1)
+    ax[0][0].set_ylabel("Magnitude [dB]")
 
-    ax[1].plot(_x_w, _x_angle, 'g', label="x")
-    #ax[1].plot(_y_w, _y_angle, 'r', label="y")
-    #ax[1].plot(_z_w, _z_angle, 'b', label="z")
+    ax[1][0].plot(_x_w, _x_angle, 'g', label="x")
+    #ax[1][0].plot(_y_w, _y_angle, 'r', label="y")
+    #ax[1][0].plot(_z_w, _z_angle, 'b', label="z")
 
-    ax[1].set_ylabel("Phase [deg]")
-    ax[1].set_xscale("log")
-    ax[1].grid()
-    ax[1].legend(loc="upper right")
-    ax[1].set_xlim(1e-3, SAMPLE_FREQ/2)
-    ax[1].set_xlabel("Frequency [rad/s]")
+    ax[1][0].set_ylabel("Phase [deg]")
+    ax[1][0].set_xscale("log")
+    ax[1][0].grid()
+    ax[1][0].legend(loc="upper right")
+    ax[1][0].set_xlim(1e-3, SAMPLE_FREQ/2)
+    ax[1][0].set_xlabel("Frequency [rad/s]")
+
+
+
+    ax[0][1].plot( _time, _x,                  "b",    label="Input-generated" )
+    #ax[0][1].plot( _d_time, _downsamp_samp,    "r.",   label="Sample points")
+    ax[0][1].plot( _d_time, _y_d_x,          ".-g",    label="Roll sensation")
+    ax[0][1].grid()
+    ax[0][1].set_xlim(0, 8)
+
+    ax[1][1].grid()
+    ax[1][1].set_xlabel("Time [s]")
 
     plt.show()
     
