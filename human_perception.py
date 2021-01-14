@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.signal import freqz, bilinear
 
-from filters.filter_utils import FunctionGenerator, SignalMux
+from filters.filter_utils import FunctionGenerator
 from filters.iir_filter import IIR
 
 # ===============================================================================
@@ -36,21 +36,21 @@ SAMPLE_FREQ = 100.0
 #   As a reference to sample rate constrained embedded system
 #
 # Unit: Hz
-IDEAL_SAMPLE_FREQ = 20000.0
+IDEAL_SAMPLE_FREQ = 1000.0
 
 ## Time window
 #
 # Unit: second
-TIME_WINDOW = 10
+TIME_WINDOW = 20
 
 ## Input signal shape
 INPUT_SIGNAL_FREQ = 0.125
 INPUT_SIGNAL_AMPLITUDE = 0.5
 INPUT_SIGNAL_OFFSET = 0.0
-INPUT_SIGNAL_PHASE = -0.25
+INPUT_SIGNAL_PHASE = 1.57
 
 ## Mux input signal
-INPUT_SIGNAL_SELECTION = SignalMux.MUX_CTRL_RECT
+INPUT_SIGNAL_SELECTION = FunctionGenerator.FG_KIND_RECT
 
 ## Number of samples in time window
 SAMPLE_NUM = int(( IDEAL_SAMPLE_FREQ * TIME_WINDOW ) + 1.0 )
@@ -183,16 +183,8 @@ if __name__ == "__main__":
     # Rotation
     _y_d_r = [[0], [0], [0]] * 3
 
-
     # Generate inputs
-    _fg_sine = FunctionGenerator( INPUT_SIGNAL_FREQ, INPUT_SIGNAL_AMPLITUDE, INPUT_SIGNAL_OFFSET, INPUT_SIGNAL_PHASE, "sine" )
-    _fg_rect = FunctionGenerator( INPUT_SIGNAL_FREQ, INPUT_SIGNAL_AMPLITUDE, INPUT_SIGNAL_OFFSET, INPUT_SIGNAL_PHASE, "rect" )
-    _sin_x = []
-    _rect_x = []
-
-    # Signal mux
-    # NOTE: Support only sine and rectange
-    _signa_mux = SignalMux( 2 )
+    _fg = FunctionGenerator( INPUT_SIGNAL_FREQ, INPUT_SIGNAL_AMPLITUDE, INPUT_SIGNAL_OFFSET, INPUT_SIGNAL_PHASE, INPUT_SIGNAL_SELECTION )
     
     # Down sample
     _downsamp_cnt = 0
@@ -201,14 +193,27 @@ if __name__ == "__main__":
     
     # Generate stimuli signals
     for n in range(SAMPLE_NUM):
-        _sin_x.append( _fg_sine.generate( _time[n] ))
-        _rect_x.append( _fg_rect.generate( _time[n] ))
- 
+        #_x[n] = ( _fg.generate( _time[n] ))
+        
+        if _time[n] < 1.0:
+            _x[n] = 0.0
+        elif _time[n] < 2.0:
+            _x[n] = _x[n-1] + 0.5 / IDEAL_SAMPLE_FREQ
+        elif _time[n] < 3.0:
+            _x[n] = 0.5
+        elif _time[n] < 4.0:
+            _x[n] = _x[n-1] - 0.5 / IDEAL_SAMPLE_FREQ
+        elif _time[n] < 10.0:
+            _x[n] = 0
+        else:
+            _x[n] = 0
+
+
     # Apply filter
     for n in range(SAMPLE_NUM):
         
         # Mux input signals
-        _x[n] = _signa_mux.out( INPUT_SIGNAL_SELECTION, [ _sin_x[n], _rect_x[n] ] )
+        #_x[n] = _signa_mux.out( INPUT_SIGNAL_SELECTION, [ _sin_x[n], _rect_x[n] ] )
 
         # Down sample to SAMPLE_FREQ
         if _downsamp_cnt >= (( 1 / ( _dt * SAMPLE_FREQ )) - 1 ):
@@ -257,85 +262,74 @@ if __name__ == "__main__":
 
     
 
-
+    plt.style.use(['dark_background'])
     ## ==============================================================================================
     # Rotation motion plots
     ## ==============================================================================================
-    fig, ax = plt.subplots(2, 2)
-    fig.suptitle( "ROTATION MOVEMENT MODEL\n fs: " + str(SAMPLE_FREQ) + "Hz", fontsize=20 )
+    fig, ax = plt.subplots(2, 1)
+    fig.suptitle( "ROTATION MOVEMENT MODEL\n fs: " + str(SAMPLE_FREQ) + "Hz", fontsize=16 )
 
-    ax[0][0].plot(_roll_w,     20 * np.log10(abs(_roll_h)),    'g', label="roll")
-    #ax[0][0].plot(_pitch_w,    20 * np.log10(abs(_pitch_h)),   'r', label="pitch")
-    #ax[0][0].plot(_yaw_w,      20 * np.log10(abs(_yaw_h)),     'b', label="yaw")
+    ax[0].plot(_roll_w, 20 * np.log10(abs(_roll_h)), "w")
 
-    ax[0][0].grid()
-    ax[0][0].set_xscale("log")
-    #ax[0][0].legend(loc="upper right")
-    ax[0][0].set_xlim(1e-3, SAMPLE_FREQ/2)
-    ax[0][0].set_ylim(-80, 2)
-    ax[0][0].set_ylabel("Magnitude [dB]")
+    ax[0].grid(alpha=0.25)
+    ax[0].set_xscale("log")
+    ax[0].set_xlim(1e-3, SAMPLE_FREQ/2)
+    ax[0].set_ylim(-80, 2)
+    ax[0].set_ylabel("Magnitude [dB]", color="w", fontsize=14)
+    ax[0].set_xlabel("Frequency [rad/s]", fontsize=14)
 
+    ax_00 = ax[0].twinx()
 
-    ax[1][0].plot(_roll_w,     _roll_angle,    'g', label="roll")
-    #ax[1][0].plot(_pitch_w,    _pitch_angle,   'r', label="pitch")
-    #ax[1][0].plot(_yaw_w,      _yaw_angle,     'b', label="yaw")
+    ax_00.plot(_roll_w, _roll_angle, "r")
+    ax_00.set_ylabel("Phase [deg]", color="r", fontsize=14)
+    ax_00.set_xscale("log")
+    ax_00.grid(alpha=0.25)
+    ax_00.set_xlim(1e-3, SAMPLE_FREQ/2)
+    ax_00.set_xlabel("Frequency [rad/s]", fontsize=14)
 
-    ax[1][0].set_ylabel("Phase [deg]")
-    ax[1][0].set_xscale("log")
-    ax[1][0].grid()
-    #ax[1][0].legend(loc="upper right")
-    ax[1][0].set_xlim(1e-3, SAMPLE_FREQ/2)
-    ax[1][0].set_xlabel("Frequency [rad/s]")
-
-
-    ax[0][1].plot( _time, _x,                  "b",    label="Input-generated" )
-    #ax[0][1].plot( _d_time, _downsamp_samp,    "r.",   label="Sample points")
-    ax[0][1].plot( _d_time, _y_d_roll,          ".-g",    label="Roll sensation")
-    ax[0][1].grid()
-    ax[0][1].set_xlim(0, 8)
-
-    ax[1][1].grid()
-    ax[1][1].set_xlabel("Time [s]")
-
+    ax[1].plot( _time, _x,                  "r",    label="Input" )
+    ax[1].plot( _d_time, _y_d_roll,          ".-y",    label="Sensed")
+    ax[1].grid(alpha=0.25)
+    ax[1].set_xlim(0, 8)
+    ax[1].legend(loc="upper right")
+    ax[1].grid(alpha=0.25)
+    ax[1].set_xlabel("Time [s]", fontsize=14)
+    ax[1].set_ylabel("rotation, sensed rotation [rad/s]", fontsize=14)
 
     ## ==============================================================================================
     # Linear motion plots
     ## ==============================================================================================
-    fig, ax = plt.subplots(2, 2)
-    fig.suptitle( "LINEAR MOVEMENT MODEL\n fs: " + str(SAMPLE_FREQ) + "Hz", fontsize=20 )
+    fig, ax = plt.subplots(2, 1)
+    fig.suptitle( "LINEAR MOVEMENT MODEL\n fs: " + str(SAMPLE_FREQ) + "Hz", fontsize=16 )
 
-    ax[0][0].plot(_x_w, 20 * np.log10(abs(_x_h)), 'g', label="x")
-    #ax[0][0].plot(_y_w, 20 * np.log10(abs(_y_h)), 'r', label="y")
-    #ax[0][0].plot(_z_w, 20 * np.log10(abs(_z_h)), 'b', label="z")
+    ax[0].plot(_x_w, 20 * np.log10(abs(_x_h)), 'w')
+    ax[0].grid(alpha=0.25)
+    ax[0].set_xscale("log")
+    ax[0].set_xlim(1e-3, SAMPLE_FREQ/2)
+    ax[0].set_ylim(-40, 1)
+    ax[0].set_ylabel("Magnitude [dB]", color="w", fontsize=14)
+    ax[0].set_xlabel("Frequency [rad/s]", fontsize=14)
 
-    ax[0][0].grid()
-    ax[0][0].set_xscale("log")
-    ax[0][0].legend(loc="upper right")
-    ax[0][0].set_xlim(1e-3, SAMPLE_FREQ/2)
-    ax[0][0].set_ylim(-40, 1)
-    ax[0][0].set_ylabel("Magnitude [dB]")
+    ax_00 = ax[0].twinx()
 
-    ax[1][0].plot(_x_w, _x_angle, 'g', label="x")
-    #ax[1][0].plot(_y_w, _y_angle, 'r', label="y")
-    #ax[1][0].plot(_z_w, _z_angle, 'b', label="z")
+    ax_00.plot(_x_w, _x_angle, "r")
 
-    ax[1][0].set_ylabel("Phase [deg]")
-    ax[1][0].set_xscale("log")
-    ax[1][0].grid()
-    ax[1][0].legend(loc="upper right")
-    ax[1][0].set_xlim(1e-3, SAMPLE_FREQ/2)
-    ax[1][0].set_xlabel("Frequency [rad/s]")
+    ax_00.set_ylabel("Phase [deg]", color="r", fontsize=14)
+    ax_00.set_xscale("log")
+    ax_00.grid(alpha=0.25)
+    ax_00.set_xlim(1e-3, SAMPLE_FREQ/2)
+    ax_00.set_xlabel("Frequency [rad/s]")
 
 
 
-    ax[0][1].plot( _time, _x,                  "b",    label="Input-generated" )
-    #ax[0][1].plot( _d_time, _downsamp_samp,    "r.",   label="Sample points")
-    ax[0][1].plot( _d_time, _y_d_x,          ".-g",    label="Roll sensation")
-    ax[0][1].grid()
-    ax[0][1].set_xlim(0, 8)
-
-    ax[1][1].grid()
-    ax[1][1].set_xlabel("Time [s]")
+    ax[1].plot( _time, _x,                  "r",    label="Input" )
+    ax[1].plot( _d_time, _y_d_x,          ".-y",    label="Sensed")
+    ax[1].grid(alpha=0.25)
+    ax[1].set_xlim(0, 8)
+    ax[1].legend(loc="upper right")
+    ax[1].grid(alpha=0.25)
+    ax[1].set_xlabel("Time [s]", fontsize=14)
+    ax[1].set_ylabel("acceleration, sensed force [mm^2]", fontsize=14)
 
     plt.show()
     

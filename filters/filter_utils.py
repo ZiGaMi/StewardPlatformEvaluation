@@ -11,6 +11,8 @@
 # ===============================================================================
 import sys
 import numpy as np
+import matplotlib.pyplot as plt
+from scipy import signal
 
 # ===============================================================================
 #       CONSTANTS
@@ -22,6 +24,10 @@ import numpy as np
 
 # Signal fucntion generator
 class FunctionGenerator:
+
+    FG_KIND_SINE = "sine"
+    FG_KIND_RECT = "rect"
+    FG_KIND_TRIANGLE = "triangle"
 
     # ===============================================================================
     # @brief: Initialize function generator object
@@ -54,6 +60,8 @@ class FunctionGenerator:
             _sig =  self.__generate_sine(time, self.freq, self.amp, self.off, self.phase)
         elif self.kind == "rect":
             _sig = self.__generate_rect(time, self.freq, self.amp, self.off, self.phase)
+        elif self.kind == "triangle":
+            _sig = self.__generate_tringle(time, self.freq, self.amp, self.off, self.phase)
         else:
             raise AssertionError
 
@@ -82,52 +90,22 @@ class FunctionGenerator:
     # @return:       Generated signal
     # ===============================================================================
     def __generate_rect(self, time, freq, amp, off, phase):
-        _carier = self.__generate_sine(time, freq, 1.0, 0.0, phase)
-        _sig = 0
-
-        if ( _carier > 0 ):
-            _sig = amp + off
-        else:
-            _sig = off
-
-        return _sig 
-
-
-# Signal multiplexor
-class SignalMux:
-
-    # Signal mux options
-    MUX_CTRL_SINE = 0   # Sine
-    MUX_CTRL_RECT = 1   # Rectange
+        _sig = ( amp * signal.square((2*np.pi*freq*time + phase), duty=0.5)) 
+        return _sig
 
     # ===============================================================================
-    # @brief: Initialize multiplexor
+    # @brief: Generate triangle signal
     #
-    # @param[in]:    size - Size of input signals
-    # @return:       void
+    # @param[in]:    time    - Linear time  
+    # @param[in]:    amp     - Amplitude of rectange
+    # @param[in]:    off     - DC offset of rectangle
+    # @param[in]:    phase   - Phase of rectangle
+    # @return:       Generated signal
     # ===============================================================================
-    def __init__(self, size=1):
-        self.size = size
-
-    # ===============================================================================
-    # @brief: Route output of mulitplexor based on control lines
-    #
-    # @param[in]:    ctrl       - Control line  
-    # @param[in]:    sig_in     - Array of signals (expected of size specified at init)
-    # @return:       out        - Output of mux
-    # ===============================================================================
-    def out(self, ctrl, sig_in):
+    def __generate_tringle(self, time, freq, amp, off, phase):
+        _sig = ( amp * signal.sawtooth((2*np.pi*freq*time + phase), width=0.5))
+        return _sig
         
-        _out = 0
-        
-        for n in range( self.size ):
-            if n == ctrl:
-                _out = sig_in[n]
-                break
-
-        return _out
-
-
 
 ## Circular buffer
 class CircBuffer:
@@ -191,3 +169,62 @@ class CircBuffer:
 # ===============================================================================
 #       END OF FILE
 # ===============================================================================
+
+## Time window
+#
+# Unit: second
+TIME_WINDOW = 2.5
+
+## Input signal shape
+INPUT_SIGNAL_FREQ = 1.0
+INPUT_SIGNAL_AMPLITUDE = 1.0
+INPUT_SIGNAL_OFFSET = 1.0
+INPUT_SIGNAL_PHASE = 0.0
+
+# Ideal sample frequency
+#   As a reference to sample rate constrained embedded system
+#
+# Unit: Hz
+IDEAL_SAMPLE_FREQ = 10000.0
+
+## Number of samples in time window
+SAMPLE_NUM = int(( IDEAL_SAMPLE_FREQ * TIME_WINDOW ) + 1.0 )
+
+
+## Only for testing
+if __name__ == "__main__":
+
+    # Time array
+    _time, _dt = np.linspace( 0.0, TIME_WINDOW, num=SAMPLE_NUM, retstep=True )
+
+
+
+    # Generate inputs
+    _fg_sine        = FunctionGenerator( INPUT_SIGNAL_FREQ, INPUT_SIGNAL_AMPLITUDE, INPUT_SIGNAL_OFFSET, INPUT_SIGNAL_PHASE, "sine" )
+    _fg_rect        = FunctionGenerator( INPUT_SIGNAL_FREQ, INPUT_SIGNAL_AMPLITUDE, INPUT_SIGNAL_OFFSET, INPUT_SIGNAL_PHASE, "rect" )
+    _fg_triangle    = FunctionGenerator( INPUT_SIGNAL_FREQ, INPUT_SIGNAL_AMPLITUDE, INPUT_SIGNAL_OFFSET, INPUT_SIGNAL_PHASE, "triangle" )
+    _sin_x = []
+    _rect_x = []
+    _triangle_x = []
+
+
+    # Generate stimuli signals
+    for n in range(SAMPLE_NUM):
+        _sin_x.append( _fg_sine.generate( _time[n] ))
+        _rect_x.append( _fg_rect.generate( _time[n] ))
+        _triangle_x.append( _fg_triangle.generate( _time[n] ))
+
+
+    plt.style.use(['dark_background'])
+    fig, ax = plt.subplots(2, 1)
+
+    ax[0].plot(_time,     _sin_x,    'y',lw=2)
+    ax[0].grid(alpha=0.25)
+
+    ax[1].plot(_time,     _rect_x,    'r', lw=2)
+    ax[1].plot(_time,     _triangle_x, 'b', lw=2)
+    ax[1].grid(alpha=0.25)
+
+
+    plt.show()
+
