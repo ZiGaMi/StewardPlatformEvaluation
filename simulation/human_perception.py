@@ -41,13 +41,13 @@ IDEAL_SAMPLE_FREQ = 1000.0
 ## Time window
 #
 # Unit: second
-TIME_WINDOW = 20
+TIME_WINDOW = 10
 
 ## Input signal shape
-INPUT_SIGNAL_FREQ = 0.125
-INPUT_SIGNAL_AMPLITUDE = 0.5
-INPUT_SIGNAL_OFFSET = 0.0
-INPUT_SIGNAL_PHASE = 1.57
+INPUT_SIGNAL_FREQ = 0.1
+INPUT_SIGNAL_AMPLITUDE = 9.81/4
+INPUT_SIGNAL_OFFSET = INPUT_SIGNAL_AMPLITUDE
+INPUT_SIGNAL_PHASE = -0.25
 
 ## Mux input signal
 INPUT_SIGNAL_SELECTION = FunctionGenerator.FG_KIND_RECT
@@ -125,14 +125,118 @@ def calc_lin_mov_coefficient(Tl, Ts, Ta, K, fs):
 
     return b, a
 
-
 # ===============================================================================
 #       CLASSES
 # ===============================================================================    
 
+## Vestibular system
+class VestibularSystem:
+
+    # ===============================================================================
+    # @brief:   Init vestibular system
+    #           
+    # @return: void
+    # ===============================================================================
+    def __init__(self):
+
+        ## Parameters of the vestibular system
+        VESTIBULAR_ROLL_TL      = 6.1
+        VESTIBULAR_ROLL_TS      = 0.1
+        VESTIBULAR_ROLL_TA      = 30.0
+
+        VESTIBULAR_PITCH_TL     = 5.3
+        VESTIBULAR_PITCH_TS     = 0.1
+        VESTIBULAR_PITCH_TA     = 30.0
+
+        VESTIBULAR_YAW_TL       = 10.2
+        VESTIBULAR_YAW_TS       = 0.1
+        VESTIBULAR_YAW_TA       = 30.0
+
+        VESTIBULAR_X_TL         = 5.33
+        VESTIBULAR_X_TS         = 0.66
+        VESTIBULAR_X_TA         = 13.2
+        VESTIBULAR_X_K          = 0.4
+
+        VESTIBULAR_Y_TL         = 5.33
+        VESTIBULAR_Y_TS         = 0.66
+        VESTIBULAR_Y_TA         = 13.2
+        VESTIBULAR_Y_K          = 0.4
+
+        VESTIBULAR_Z_TL         = 5.33
+        VESTIBULAR_Z_TS         = 0.66
+        VESTIBULAR_Z_TA         = 13.2
+        VESTIBULAR_Z_K          = 0.4
+
+        # Rotation movement coefficient
+        _roll_b, _roll_a    = self.__calc_rot_mov_coefficient( VESTIBULAR_ROLL_TL, VESTIBULAR_ROLL_TS, VESTIBULAR_ROLL_TA, SAMPLE_FREQ )
+        _pitch_b, _pitch_a  = self.__calc_rot_mov_coefficient( VESTIBULAR_PITCH_TL, VESTIBULAR_PITCH_TS, VESTIBULAR_PITCH_TA, SAMPLE_FREQ )
+        _yaw_b, _yaw_a      = self.__calc_rot_mov_coefficient( VESTIBULAR_YAW_TL, VESTIBULAR_YAW_TS, VESTIBULAR_YAW_TA, SAMPLE_FREQ )
+
+        # Linear movement coefficient
+        _x_b, _x_a = self.__calc_lin_mov_coefficient( VESTIBULAR_X_TL, VESTIBULAR_X_TS, VESTIBULAR_X_TA, VESTIBULAR_X_K, SAMPLE_FREQ )
+        _y_b, _y_a = self.__calc_lin_mov_coefficient( VESTIBULAR_Y_TL, VESTIBULAR_Y_TS, VESTIBULAR_Y_TA, VESTIBULAR_Y_K, SAMPLE_FREQ )
+        _z_b, _z_a = self.__calc_lin_mov_coefficient( VESTIBULAR_Z_TL, VESTIBULAR_Z_TS, VESTIBULAR_Z_TA, VESTIBULAR_Z_K, SAMPLE_FREQ )
+
+        self._roll_filt  = IIR( a=_roll_a,   b=_roll_b,  order=3 )
+        self._pitch_filt = IIR( a=_pitch_a,  b=_pitch_b, order=3 )
+        self._yaw_filt   = IIR( a=_yaw_a,    b=_yaw_b,   order=3 )
+
+        self._x_filt = IIR( a=_x_a, b=_x_b, order=2 )
+        self._y_filt = IIR( a=_y_a, b=_y_b, order=2 )
+        self._z_filt = IIR( a=_z_a, b=_z_b, order=2 )
+
+    # ===============================================================================
+    # @brief:   Update vesticular system
+    #           
+    #
+    # @param[in]:    a      - Input accelerations
+    # @param[in]:    w      - Input angular velocities
+    # @return:       af, wf - Sensed accelerations and angular velocities
+    # ===============================================================================
+    def update(self, a, w):
+        
+        af_x = self._x_filt.update( a[0] ) 
+        af_y = self._y_filt.update( a[1] ) 
+        af_z = self._z_filt.update( a[2] ) 
+        af = [af_x, af_y, af_z]
+
+        wf_x = self._roll_filt.update( w[0] ) 
+        wf_y = self._pitch_filt.update( w[1] ) 
+        wf_z = self._yaw_filt.update( w[2] ) 
+        wf = [wf_x, wf_y, wf_z]
+
+        return af, wf
+
+    # ===============================================================================
+    # @brief:   Calculate rotation perception coefficients
+    #           
+    #   h(s) = (1/Ts * s^2) / ( s^3 + (1/Ta + 1/Tl + 1/Ts)*s^2 + (1/Tl*Ts + 1/Tl*Ta + 1/Ta*Ts)*s + 1/(Ta*Tl*Ts)))
+    #
+    # @param[in]:    Tl, Ts, Ta - Coefficient in the semicircular canals sensation model
+    # @param[in]:    fs         - Sample frequency
+    # @return:       b,a        - Array of b,a IIR coefficients
+    # ===============================================================================
+    def __calc_rot_mov_coefficient(self, Tl, Ts, Ta, fs):
+
+        b, a = bilinear( [0, 1/Ts, 0, 0], [1, (1/Ta + 1/Tl + 1/Ts), (1/Tl*Ts + 1/Tl*Ta + 1/Ta*Ts), 1/(Ta*Tl*Ts)], fs )
+
+        return b, a
 
 
+    # ===============================================================================
+    # @brief:   Calculate linear movement perception coefficients
+    #           
+    #   h(s) = ((K*Ta)*s + k) / ((Tl*Ts)*s^2 + (Tl+Ts)*s + 1)
+    #
+    # @param[in]:    Tl, Ts, Ta, K  - Coefficients in the otolith model
+    # @param[in]:    fs             - Sample frequency
+    # @return:       b,a            - Array of b,a IIR coefficients
+    # ===============================================================================
+    def __calc_lin_mov_coefficient(self, Tl, Ts, Ta, K, fs):
 
+        b, a = bilinear( [0, K*Ta, K], [ Tl*Ts, Tl+Ts, 1], fs )
+
+        return b, a
 
 
 # ===============================================================================
@@ -143,6 +247,7 @@ if __name__ == "__main__":
     # Time array
     _time, _dt = np.linspace( 0.0, TIME_WINDOW, num=SAMPLE_NUM, retstep=True )
 
+    
     # Rotation movement coefficient
     _roll_b, _roll_a    = calc_rot_mov_coefficient( VESTIBULAR_ROLL_TL, VESTIBULAR_ROLL_TS, VESTIBULAR_ROLL_TA, SAMPLE_FREQ )
     _pitch_b, _pitch_a  = calc_rot_mov_coefficient( VESTIBULAR_PITCH_TL, VESTIBULAR_PITCH_TS, VESTIBULAR_PITCH_TA, SAMPLE_FREQ )
@@ -170,18 +275,26 @@ if __name__ == "__main__":
     #_y_w, _y_h = freqz( _y_b, _y_a, 4096 * N )
     #_z_w, _z_h = freqz( _z_b, _z_a, 4096 * N )
 
+
+    # Vestibular system
+    _vest_sys = VestibularSystem()
+
+
+
     # Filter input/output
     _x = [ 0 ] * SAMPLE_NUM
     _x_d = [0]
 
+    
     _y_d_roll = [0]
     _y_d_x = [0]
-
-    # Position
-    _y_d_p = [[0], [0], [0]] * 3
     
-    # Rotation
-    _y_d_r = [[0], [0], [0]] * 3
+
+    # Accelerations
+    _y_d_a_sens = [[0], [0], [0]] * 3
+    
+    # Angular rates
+    _y_d_w_sens = [[0], [0], [0]] * 3
 
     # Generate inputs
     _fg = FunctionGenerator( INPUT_SIGNAL_FREQ, INPUT_SIGNAL_AMPLITUDE, INPUT_SIGNAL_OFFSET, INPUT_SIGNAL_PHASE, INPUT_SIGNAL_SELECTION )
@@ -193,8 +306,11 @@ if __name__ == "__main__":
     
     # Generate stimuli signals
     for n in range(SAMPLE_NUM):
-        #_x[n] = ( _fg.generate( _time[n] ))
+        _x[n] = ( _fg.generate( _time[n] ))
         
+
+        # Some custom signal
+        """
         if _time[n] < 1.0:
             _x[n] = 0.0
         elif _time[n] < 2.0:
@@ -207,6 +323,7 @@ if __name__ == "__main__":
             _x[n] = 0
         else:
             _x[n] = 0
+        """
 
 
     # Apply filter
@@ -224,11 +341,17 @@ if __name__ == "__main__":
             _d_time.append( _time[n])
             _x_d.append( _x[n] )
 
+            
             # Rotation sensed
             _y_d_roll.append( _roll_filt.update( _x[n] ))
             _y_d_x.append( _x_filt.update( _x[n] ))
+            
 
+            a_sens, w_sens = _vest_sys.update( [ _x[n], 0, 0 ], [ _x[n], 0, 0 ] )
 
+            for n in range(3):
+                _y_d_a_sens[n].append( a_sens[n] )
+                _y_d_w_sens[n].append( w_sens[n] )
         else:
             _downsamp_cnt += 1
     
@@ -269,6 +392,7 @@ if __name__ == "__main__":
     fig, ax = plt.subplots(2, 1)
     fig.suptitle( "ROTATION MOVEMENT MODEL\n fs: " + str(SAMPLE_FREQ) + "Hz", fontsize=16 )
 
+    
     ax[0].plot(_roll_w, 20 * np.log10(abs(_roll_h)), "w")
 
     ax[0].grid(alpha=0.25)
@@ -286,9 +410,11 @@ if __name__ == "__main__":
     ax_00.grid(alpha=0.25)
     ax_00.set_xlim(1e-3, SAMPLE_FREQ/2)
     ax_00.set_xlabel("Frequency [rad/s]", fontsize=14)
+    
 
     ax[1].plot( _time, _x,                  "r",    label="Input" )
-    ax[1].plot( _d_time, _y_d_roll,          ".-y",    label="Sensed")
+    ax[1].plot( _d_time, _y_d_roll,         ".-y",    label="Sensed")
+    ax[1].plot( _d_time, _y_d_w_sens[0],    "--w",    label="Sensed")
     ax[1].grid(alpha=0.25)
     ax[1].set_xlim(0, 8)
     ax[1].legend(loc="upper right")
@@ -302,6 +428,7 @@ if __name__ == "__main__":
     fig, ax = plt.subplots(2, 1)
     fig.suptitle( "LINEAR MOVEMENT MODEL\n fs: " + str(SAMPLE_FREQ) + "Hz", fontsize=16 )
 
+    
     ax[0].plot(_x_w, 20 * np.log10(abs(_x_h)), 'w')
     ax[0].grid(alpha=0.25)
     ax[0].set_xscale("log")
@@ -319,11 +446,12 @@ if __name__ == "__main__":
     ax_00.grid(alpha=0.25)
     ax_00.set_xlim(1e-3, SAMPLE_FREQ/2)
     ax_00.set_xlabel("Frequency [rad/s]")
-
+    
 
 
     ax[1].plot( _time, _x,                  "r",    label="Input" )
-    ax[1].plot( _d_time, _y_d_x,          ".-y",    label="Sensed")
+    ax[1].plot( _d_time, _y_d_x,            ".-y",    label="Sensed")
+    ax[1].plot( _d_time, _y_d_a_sens[0],    "--w",    label="Sensed")
     ax[1].grid(alpha=0.25)
     ax[1].set_xlim(0, 8)
     ax[1].legend(loc="upper right")

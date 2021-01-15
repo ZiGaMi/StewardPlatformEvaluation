@@ -90,7 +90,7 @@ class FunctionGenerator:
     # @return:       Generated signal
     # ===============================================================================
     def __generate_rect(self, time, freq, amp, off, phase):
-        _sig = ( amp * signal.square((2*np.pi*freq*time + phase), duty=0.5)) 
+        _sig = ( amp * signal.square((2*np.pi*freq*time + phase), duty=0.5) + off ) 
         return _sig
 
     # ===============================================================================
@@ -103,7 +103,7 @@ class FunctionGenerator:
     # @return:       Generated signal
     # ===============================================================================
     def __generate_tringle(self, time, freq, amp, off, phase):
-        _sig = ( amp * signal.sawtooth((2*np.pi*freq*time + phase), width=0.5))
+        _sig = ( amp * signal.sawtooth((2*np.pi*freq*time + phase), width=0.5) + off )
         return _sig
         
 
