@@ -159,15 +159,31 @@ def system_model_route_input_signal(inp_sig, sel):
 ## Converstion to driver reference frame
 class DriverFrame:
 
-    def __init__(self, r_ea, g):
+    # ===============================================================================
+    # @brief: Initialization of conversion to driver frame
+    #
+    # @param[in]:    r_ae   - Position of driver head in respect to platform
+    # @param[in]:    dt     - Period time 
+    # @return:       void
+    # ===============================================================================
+    def __init__(self, r_ea, dt):
         self.r_ea = r_ea
         self.g = g
+        self.dt = dt
 
 
 
     def update(self, a, w):
         a_d = [0] * 3
         a_w = [0] * 3
+
+        # Calculate needed matrixes
+        Lia = self.__calculate_lia_matrix( w[0], w[1], w[2] )
+        Aea = self.__calculate_aea_matrix( w[0], w[1], w[2], w_dot[0], w_dot[1], w_dot[2] )
+        #Ra = self.__calculate_ra_matrix(  ) 
+
+        ## Apply rotation
+        _a_AA = self.__multiply_matrix_and_vector(Lia)
 
 
         return a_d, a_w
@@ -237,6 +253,25 @@ class DriverFrame:
         Lia[2][2] = c_roll * c_pitch
 
         return Lia
+
+    def __multiply_matrix_and_vector(self, matrix, vector):
+        res_vector = [0] * 3
+        for i in range(3):
+            for j in range(3):
+                res_vector[i] += matrix[i][j] * vector[j]
+        return res_vector
+
+    def __sum_vectors(self, vec_1, vec_2):
+        res_vector = [0] * 3
+        for i in range(3):
+            res_vector[i] = vec_1[i] + vec_2[i]
+        return res_vector
+
+    def __subtract_vectors(self, vec_1, vec_2):
+        res_vector = [0] * 3
+        for i in range(3):
+            res_vector[i] = vec_1[i] - vec_2[i]
+        return res_vector
     
 
 # ===============================================================================
