@@ -33,12 +33,12 @@ SAMPLE_FREQ = 100.0
 #   As a reference to sample rate constrained embedded system
 #
 # Unit: Hz
-IDEAL_SAMPLE_FREQ = 5000.0
+IDEAL_SAMPLE_FREQ = 10000.0
 
 ## Time window
 #
 # Unit: second
-TIME_WINDOW = 1
+TIME_WINDOW = 10
 
 ## Input signal shape
 INPUT_SIGNAL_FREQ = 0.1
@@ -49,11 +49,15 @@ INPUT_SIGNAL_PHASE = -0.25
 ## Mux input signal
 INPUT_SIGNAL_SELECTION = FunctionGenerator.FG_KIND_RECT
 
-## Number of samples in time window
-SAMPLE_NUM = int(( IDEAL_SAMPLE_FREQ * TIME_WINDOW ) + 1.0 )
+## Input signal route
+INPUT_SIGNAL_ROUTE_TO_AX = 0
+INPUT_SIGNAL_ROUTE_TO_AY = 1
+INPUT_SIGNAL_ROUTE_TO_AZ = 2
+INPUT_SIGNAL_ROUTE_TO_WX = 3
+INPUT_SIGNAL_ROUTE_TO_WY = 4
+INPUT_SIGNAL_ROUTE_TO_WZ = 5
 
-
-
+INPUT_SIGNAL_ROUTE = INPUT_SIGNAL_ROUTE_TO_AY
 
 # =====================================================
 # WASHOUT FILTER COEFFICINETS
@@ -63,28 +67,31 @@ SAMPLE_NUM = int(( IDEAL_SAMPLE_FREQ * TIME_WINDOW ) + 1.0 )
 ## TRANSLATION CHANNEL SETTINGS
 
 # HPF Wht 2nd order filter
-WASHOUT_HPF_WHT_FC  = 1.0
-WASHOUT_HPF_WHT_Z   = .7071
+WASHOUT_HPF_WHT_FC  = .01
+WASHOUT_HPF_WHT_Z   = .05
 
 # HPF Wrtzt 1st order filter
-WASHOUT_HPF_WRTZT_FC  = 1.0
+WASHOUT_HPF_WRTZT_FC  = .1
 
 # =====================================================
 ## COORDINATION CHANNEL SETTINGS
 
 # LPF W12 2nd order filter
-WASHOUT_LPF_W12_FC  = 1.0
-WASHOUT_LPF_W12_Z   = 1.0
+WASHOUT_LPF_W12_FC  = .1
+WASHOUT_LPF_W12_Z   = .2
 
 # =====================================================
 ## ROTATION CHANNEL SETTINGS
 
 # HPF W11 1st order filter
-WASHOUT_HPF_W11_FC  = 1.0
-
+WASHOUT_HPF_W11_FC  = .1
 
 
 ## ****** END OF USER CONFIGURATIONS ******
+
+## Number of samples in time window
+SAMPLE_NUM = int(( IDEAL_SAMPLE_FREQ * TIME_WINDOW ) + 1.0 )
+
 
 # ===============================================================================
 #       FUNCTIONS
@@ -108,20 +115,41 @@ def system_model_log_data(storage, data):
 
 
 def system_model_plot_a_signals(ax, x, a):
-    ax.plot( x, a[0], "r.-", label="ax")
-    ax.plot( x, a[1], "y.-", label="ay")
-    ax.plot( x, a[2], "g.-", label="az")
+    ax.plot( x, a[0], "r", label="ax")
+    ax.plot( x, a[1], "y", label="ay")
+    ax.plot( x, a[2], "g", label="az")
 
 
 def system_model_plot_w_signals(ax, x, w):
-    ax.plot( x, w[0], "w.-", label="wx")
-    ax.plot( x, w[1], "b.-", label="wy")
-    ax.plot( x, w[2], "c.-", label="wz")
+    ax.plot( x, w[0], "w", label="wx")
+    ax.plot( x, w[1], "tab:orange", label="wy")
+    ax.plot( x, w[2], "c", label="wz")
 
 
 def system_model_plot_signals(ax, x, a, w):
     system_model_plot_a_signals(ax, x, a)
     system_model_plot_w_signals(ax, x, w)
+
+def system_model_route_input_signal(inp_sig, sel):
+    a = [0] * 3
+    w = [0] * 3
+
+    if sel == INPUT_SIGNAL_ROUTE_TO_AX:
+        a[0] = inp_sig
+    elif sel == INPUT_SIGNAL_ROUTE_TO_AY:
+        a[1] = inp_sig
+    elif sel == INPUT_SIGNAL_ROUTE_TO_AZ:
+        a[2] = inp_sig
+    elif sel == INPUT_SIGNAL_ROUTE_TO_WX:
+        w[0] = inp_sig
+    elif sel == INPUT_SIGNAL_ROUTE_TO_WY:
+        w[1] = inp_sig
+    elif sel == INPUT_SIGNAL_ROUTE_TO_WZ:
+        w[2] = inp_sig
+    else:
+        raise AssertionError
+
+    return a, w
 
 
 # ===============================================================================
@@ -253,6 +281,10 @@ if __name__ == "__main__":
             _x_d.append( _x[n] )
 
 
+            # =====================================================================
+            #   MODEL INPUT SELECTION
+            # =====================================================================
+            _a_in, _w_in = system_model_route_input_signal( _x[n], INPUT_SIGNAL_ROUTE )
 
             # =====================================================================
             #   SIMULATE MODEL
@@ -265,7 +297,7 @@ if __name__ == "__main__":
             _a_wash, _w_wash = _filter_washout.update( _a_in, _w_in )
 
             # Vestibular system - WASHOUT SENSATION
-            _a_wash_sens, _w_wash_sens = _vest_sys_test.update( _a_wash, _w_wash )
+            _a_wash_sens, _w_wash_sens = _vest_sys_wash.update( _a_wash, _w_wash )
 
             # Calculate error in real and washout sensation
             _a_sens_err, _w_sens_err = system_model_calc_sens_error(  _a_sens_test, _w_sens_test, _a_wash_sens, _w_wash_sens )
@@ -275,10 +307,6 @@ if __name__ == "__main__":
             # TODO: calculate positions & rotations
 
 
-
-
-            #p, r = _filter_washout.update( [ _x[n], 0, 0 ], [ 0, 0, 0 ] )
-            #p, r = _filter_washout.update( _a_in, _w_in )
             
             # =====================================================================
             #   LOG DATA FOR PLOTING
@@ -311,11 +339,13 @@ if __name__ == "__main__":
     # =============================================================================================
     plt.style.use(['dark_background'])
     PLOT_MAIN_TITLE_SIZE    = 18
-    PLOT_MAIN_TITLE         = "SYSTEM MODEL SIMULATIONS\n fs: " + str(SAMPLE_FREQ) + "Hz" 
+    PLOT_MAIN_TITLE         = "SYSTEM MODEL SIMULATIONS | fs: " + str(SAMPLE_FREQ) + "Hz" 
     PLOT_TITLE_SIZE         = 16
     PLOT_AXIS_LABEL_SIZE    = 12
-
-
+    PLOT_ADJUST_LEFT        = 0.06
+    PLOT_ADJUST_RIGHT       = 0.98
+    PLOT_ADJUST_TOP         = 0.91
+    PLOT_ADJUST_BOTTOM      = 0.05
 
     ## ==============================================================================================
     # Rotation motion plots
@@ -331,15 +361,16 @@ if __name__ == "__main__":
     ax[0].set_ylabel('Acceleration [m/s^2],\nAngular rate [rad/s]', fontsize=PLOT_AXIS_LABEL_SIZE)
         
     # Subplot 1
-    system_model_plot_signals( ax[1], _d_time, _y_d_a_sens_test, _y_d_w_sens_test )
-    ax[1].set_title("Vestibular system - sensation reference", fontsize=PLOT_TITLE_SIZE)
+    system_model_plot_signals( ax[1], _d_time, _y_d_a_wash, _y_d_w_wash )
+    ax[1].set_title("Washout filter output", fontsize=PLOT_TITLE_SIZE)
     ax[1].grid(alpha=0.25)
     ax[1].legend(loc="upper right")
     ax[1].set_ylabel('Acceleration [m/s^2],\nAngular rate [rad/s]', fontsize=PLOT_AXIS_LABEL_SIZE)
 
     # Subplot 2
     system_model_plot_signals( ax[2], _d_time, _y_d_a_wash_sens, _y_d_w_wash_sens )
-    ax[2].set_title("Washout system - simulation of sensation", fontsize=PLOT_TITLE_SIZE)
+    system_model_plot_signals( ax[2], _d_time, _y_d_a_sens_test, _y_d_w_sens_test )
+    ax[2].set_title("Washout - actual feeling vs. Vastibular - reference feeling", fontsize=PLOT_TITLE_SIZE)
     ax[2].grid(alpha=0.25)
     ax[2].legend(loc="upper right")
     ax[2].set_ylabel('Acceleration [m/s^2],\nAngular rate [rad/s]', fontsize=PLOT_AXIS_LABEL_SIZE)
@@ -352,7 +383,7 @@ if __name__ == "__main__":
     ax[3].set_ylabel('Acceleration [m/s^2],\nAngular rate [rad/s]', fontsize=PLOT_AXIS_LABEL_SIZE)
     ax[3].set_xlabel('Time [s]', fontsize=PLOT_AXIS_LABEL_SIZE)
 
-
+    plt.subplots_adjust(left=PLOT_ADJUST_LEFT, right=PLOT_ADJUST_RIGHT, top=PLOT_ADJUST_TOP, bottom=PLOT_ADJUST_BOTTOM)
     plt.show()
     
 
