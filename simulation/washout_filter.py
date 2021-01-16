@@ -8,15 +8,6 @@
 # ===============================================================================
 
 # ===============================================================================
-#  TODO:
-#
-#   - Enable/Disable via check box showing pos/vel/acc as output of w filter
-#   - Make sliders for setting coefficients of filters
-#   - Make 5 additional signal generators to simulate all dimensions
-#   - Make easy configuration to change stimuli signal to acceleration or rotation
-# ===============================================================================
-
-# ===============================================================================
 #       IMPORTS  
 # ===============================================================================
 import sys
@@ -43,7 +34,7 @@ SAMPLE_FREQ = 100.0
 #   As a reference to sample rate constrained embedded system
 #
 # Unit: Hz
-IDEAL_SAMPLE_FREQ = 20000.0
+IDEAL_SAMPLE_FREQ = 10000.0
 
 ## Time window
 #
@@ -73,12 +64,6 @@ WASHOUT_HPF_WHT_Z   = .7071
 # HPF Wrtzt 1st order filter
 WASHOUT_HPF_WRTZT_FC  = 1.0
 
-# SCALE AND LIMIT
-# [ x, y, z]
-WASHOUT_SCALE_A_T = [ 1.0, 1.0, 1.0 ]
-WASHOUT_LIMIT_A_T = [ 2.0, 2.0, 2.0 ] # Limits are symetrical
-
-
 # =====================================================
 ## COORDINATION CHANNEL SETTINGS
 
@@ -86,34 +71,11 @@ WASHOUT_LIMIT_A_T = [ 2.0, 2.0, 2.0 ] # Limits are symetrical
 WASHOUT_LPF_W12_FC  = 1.0
 WASHOUT_LPF_W12_Z   = 1.0
 
-# SCALE AND LIMIT 
-# [ x, y, z]
-WASHOUT_SCALE_A_C = [ 1.0, 1.0, 1.0 ]
-WASHOUT_LIMIT_A_C = [ 2.0, 2.0, 2.0 ] # Limits are symetrical
-
-# Gravity constant
-G = 9.18
-G_INV = 1.0 / G
-
-# TILT MATRIX
-WASHOUT_TILT_MATRIX = [ [0,         G_INV,  0],
-                        [-G_INV,    0,      0],
-                        [0,         0,      0] ]
-
-# TILT LIMIT
-WASHOUT_TILT_LIMIT = [ 0.2, 0.2, 0.2 ]
-
-
 # =====================================================
 ## ROTATION CHANNEL SETTINGS
 
 # HPF W11 1st order filter
 WASHOUT_HPF_W11_FC  = 1.0
-
-# SCALE AND LIMIT
-# [ rool, pitch, yaw]
-WASHOUT_SCALE_BETA = [ 1.0, 1.0, 1.0 ]
-WASHOUT_LIMIT_BETA = [ 0.2, 0.2, 0.2 ]
 
 
 ## ****** END OF USER CONFIGURATIONS ******
@@ -126,9 +88,49 @@ WASHOUT_LIMIT_BETA = [ 0.2, 0.2, 0.2 ]
 #       CLASSES
 # ===============================================================================    
 
-## IIR Filter
-class Washout:
+## Wahsout filter
+class WashoutFilter:
 
+    ## TRANSLATION CHANNEL SETTINGS
+    # SCALE AND LIMIT
+    # [ x, y, z]
+    WASHOUT_SCALE_A_T = [ 1.0, 1.0, 1.0 ]
+    WASHOUT_LIMIT_A_T = [ 2.0, 2.0, 2.0 ] # Limits are symetrical
+
+    ## COORDINATION CHANNEL SETTINGS
+    # SCALE AND LIMIT 
+    # [ x, y, z]
+    WASHOUT_SCALE_A_C = [ 1.0, 1.0, 1.0 ]
+    WASHOUT_LIMIT_A_C = [ 2.0, 2.0, 2.0 ] # Limits are symetrical
+
+    ## ROTATION CHANNEL SETTINGS        
+    # SCALE AND LIMIT
+    # [ rool, pitch, yaw]
+    WASHOUT_SCALE_BETA = [ 1.0, 1.0, 1.0 ]
+    WASHOUT_LIMIT_BETA = [ 0.2, 0.2, 0.2 ]
+
+    # Gravity constant
+    G = 9.18
+    G_INV = 1.0 / G
+
+    # TILT MATRIX
+    WASHOUT_TILT_MATRIX = [ [0,         G_INV,  0],
+                            [-G_INV,    0,      0],
+                            [0,         0,      0] ]
+
+    # TILT LIMIT
+    WASHOUT_TILT_LIMIT = [ 0.2, 0.2, 0.2 ]
+
+    # ===============================================================================
+    # @brief: Initialization of filter
+    #
+    # @param[in]:    Wht        - Translation channel HPF coefficient
+    # @param[in]:    Wrtzt      - Translation channel HPF (return to zero) coefficient
+    # @param[in]:    W11        - Rotation channel HPF coefficient
+    # @param[in]:    W12        - Tilt coordination channel LPF coefficient
+    # @param[in]:    fs         - Sample frequency
+    # @return:       void
+    # ===============================================================================
     def __init__(self, Wht, Wrtzt, W11, W12, fs):
 
         # Translation channel filters
@@ -179,27 +181,27 @@ class Washout:
 
         # Translation channel scaling/limitation/filtering
         for n in range(3):
-            a_t[n] = self.__scale_limit( a[n], WASHOUT_SCALE_A_T[n], WASHOUT_LIMIT_A_T[n] )
+            a_t[n] = self.__scale_limit( a[n], self.WASHOUT_SCALE_A_T[n], self.WASHOUT_LIMIT_A_T[n] )
             a_t[n] = self._hpf_wht[n].update( a_t[n] )
             a_t[n] = self._hpf_wrtzt[n].update( a_t[n] )
 
         # Coordingation channel scaling/limitation/filtering
         for n in range(3):
-            a_c[n]  = self.__scale_limit( a[n], WASHOUT_SCALE_A_C[n], WASHOUT_LIMIT_A_C[n] )
+            a_c[n]  = self.__scale_limit( a[n], self.WASHOUT_SCALE_A_C[n], self.WASHOUT_LIMIT_A_C[n] )
             a_c[n] = self._lpf_w12[n].update( a_c[n] )
 
         # Tilt coordination
         a_c_tilt = [0] * 3
         for n in range(3):
             for j in range(3):
-                a_c_tilt[n] += WASHOUT_TILT_MATRIX[n][j] * a_c[j]
+                a_c_tilt[n] += self.WASHOUT_TILT_MATRIX[n][j] * a_c[j]
 
         # Rate limiter
         # TODO: 
 
         # Rotaion scaling/limitation/filtering
         for n in range(3):
-            beta_r[n] = self.__scale_limit( beta[n], WASHOUT_SCALE_BETA[n], WASHOUT_LIMIT_BETA[n] )
+            beta_r[n] = self.__scale_limit( beta[n], self.WASHOUT_SCALE_BETA[n], self.WASHOUT_LIMIT_BETA[n] )
             beta_r[n] = self._hpf_w22[n].update( beta_r[n] )
 
             # Add tilt to rotation channel
@@ -232,8 +234,6 @@ class Washout:
 
 
 
-
-
 # ===============================================================================
 #       MAIN ENTRY
 # ===============================================================================
@@ -244,8 +244,8 @@ if __name__ == "__main__":
 
     
     # Filter object
-    _filter_washout = Washout(  Wht=[WASHOUT_HPF_WHT_FC, WASHOUT_HPF_WHT_Z], Wrtzt=WASHOUT_HPF_WRTZT_FC, \
-                                W11=WASHOUT_HPF_W11_FC, W12=[WASHOUT_LPF_W12_FC, WASHOUT_LPF_W12_Z], fs=SAMPLE_FREQ )
+    _filter_washout = WashoutFilter(    Wht=[WASHOUT_HPF_WHT_FC, WASHOUT_HPF_WHT_Z], Wrtzt=WASHOUT_HPF_WRTZT_FC, \
+                                        W11=WASHOUT_HPF_W11_FC, W12=[WASHOUT_LPF_W12_FC, WASHOUT_LPF_W12_Z], fs=SAMPLE_FREQ )
 
     # Filter input/output
     _x = [ 0 ] * SAMPLE_NUM
