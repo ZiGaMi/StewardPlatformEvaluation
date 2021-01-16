@@ -156,6 +156,88 @@ def system_model_route_input_signal(inp_sig, sel):
 #       CLASSES
 # ===============================================================================    
 
+## Converstion to driver reference frame
+class DriverFrame:
+
+    def __init__(self, r_ea, g):
+        self.r_ea = r_ea
+        self.g = g
+
+
+
+    def update(self, a, w):
+        a_d = [0] * 3
+        a_w = [0] * 3
+
+
+        return a_d, a_w
+
+
+    # NOTE: p-x axis, q-y axis, r-z axis rotations
+    def __calculate_aea_matrix(self, p,  q, r, p_dot, q_dot, r_dot):
+        Aps = [[0], [0], [0]] * 3
+
+        Aps[0][0] = -(q**2) - (r**2)
+        Aps[0][1] = (p*q) - r_dot
+        Aps[0][2] = (p*r) - q_dot
+
+        Aps[1][0] = (p*q) - r_dot
+        Aps[1][1] = -(p**2) - (r**2)
+        Aps[1][2] = (q*r) - p_dot
+
+        Aps[2][0] = (p*r) - q_dot
+        Aps[2][1] = (q*r) - p_dot
+        Aps[2][2] = -(p**2) - (q**2)
+
+        return Aps
+
+    
+    def __calculate_ra_matrix(self, roll, pitch):
+        Ra = [[0], [0], [0]] * 3
+
+        s_roll = np.sin(roll)
+        c_roll = np.cos(roll)
+        s_pitch = np.sin(pitch)
+        c_pitch = np.cos(pitch)
+
+        Ra[0][0] = 1
+        Ra[0][1] = 0
+        Ra[0][2] = -s_pitch
+
+        Ra[1][0] = 0
+        Ra[1][1] = c_roll
+        Ra[1][2] = s_roll * c_pitch
+
+        Ra[2][0] = 0
+        Ra[2][1] = -s_roll
+        Ra[2][2] = c_roll * c_pitch
+
+        return Ra
+
+    def __calculate_lia_matrix(self, roll, pitch, yaw):
+        Lia = [[0], [0], [0]] * 3
+
+        s_roll  = np.sin(roll)
+        c_roll  = np.cos(roll)
+        s_pitch = np.sin(pitch)
+        c_pitch = np.cos(pitch)
+        s_yaw  = np.sin(yaw)
+        c_yaw  = np.cos(yaw)
+
+        Lia[0][0] = c_pitch * c_yaw
+        Lia[0][1] = c_pitch * s_yaw
+        Lia[0][2] = -s_pitch
+
+        Lia[1][0] = (s_roll*s_pitch*c_yaw) - (c_roll*s_yaw)
+        Lia[1][1] = (s_roll*s_pitch*s_yaw) + (c_roll*c_yaw)
+        Lia[1][2] = s_roll*c_pitch
+
+        Lia[2][0] = (c_roll*s_pitch*c_yaw) + (s_roll*s_yaw)
+        Lia[2][1] = (c_roll*s_pitch*s_yaw) - (s_roll*c_yaw)
+        Lia[2][2] = c_roll * c_pitch
+
+        return Lia
+    
 
 # ===============================================================================
 #       MAIN ENTRY
