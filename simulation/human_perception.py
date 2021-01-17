@@ -306,11 +306,11 @@ if __name__ == "__main__":
     
     # Generate stimuli signals
     for n in range(SAMPLE_NUM):
-        _x[n] = ( _fg.generate( _time[n] ))
+        #_x[n] = ( _fg.generate( _time[n] ))
         
 
         # Some custom signal
-        """
+        
         if _time[n] < 1.0:
             _x[n] = 0.0
         elif _time[n] < 2.0:
@@ -323,7 +323,7 @@ if __name__ == "__main__":
             _x[n] = 0
         else:
             _x[n] = 0
-        """
+        
 
 
     # Apply filter

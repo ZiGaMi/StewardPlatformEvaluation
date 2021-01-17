@@ -134,6 +134,8 @@ class WashoutFilter:
     def __init__(self, Wht, Wrtzt, W11, W12, fs):
 
         # Translation channel filters
+        self._hpf_w22 = [0] * 3
+        
         b, a = calculate_2nd_order_HPF_coeff( Wht[0], Wht[1], fs )
         self._hpf_wht = [0] * 3
         self._hpf_wht[0] = IIR( a, b, 2 )
@@ -145,21 +147,52 @@ class WashoutFilter:
         self._hpf_wrtzt[0] = IIR( a, b, 1 )
         self._hpf_wrtzt[1] = IIR( a, b, 1 )
         self._hpf_wrtzt[2] = IIR( a, b, 1 )
+        
+
+        # Calculate based on article
+        """
+        b, a = bilinear([1,0,0,0], [1,20.1065,13.1799,10.1655], fs)
+        self._hpf_w22[0] = IIR( a, b, 3 )
+
+        b, a = bilinear([1,0,0,0], [1,11.1047,3.6153,0.0722], fs)
+        self._hpf_w22[1] = IIR( a, b, 3 )
+
+        b, a = bilinear([1,0,0,0], [1,11.1047,3.6153,0.0722], fs)
+        self._hpf_w22[2] = IIR( a, b, 3 )
+        """
 
         # Coordination channel filters
-        b, a = calculate_2nd_order_LPF_coeff( W12[0], W12[1], fs )
         self._lpf_w12 = [0] * 3
+        b, a = calculate_2nd_order_LPF_coeff( W12[0], W12[1], fs )
         self._lpf_w12[0] = IIR( a, b, 2 )
         self._lpf_w12[1] = IIR( a, b, 2 )
-        self._lpf_w12[2] = IIR( a, b, 2 )
+        
+        """
+        # Calculate based on article
+        b, a = bilinear([0,0,1704.4], [1,7.6094,1704.4], fs)
+        self._lpf_w12[0] = IIR( a, b, 2 )
+        b, a = bilinear([0,0,1222.3], [1,0.1960,1223.3], fs)
+        self._lpf_w12[1] = IIR( a, b, 2 )
+        """
 
         # Rotation channel filters
+        self._hpf_w11 = [0] * 3
         b, a = calculate_1nd_order_HPF_coeff( W11, fs )
-        self._hpf_w22 = [0] * 3
-        self._hpf_w22[0] = IIR( a, b, 1 )
-        self._hpf_w22[1] = IIR( a, b, 1 )
-        self._hpf_w22[2] = IIR( a, b, 1 )
+        self._hpf_w11[0] = IIR( a, b, 1 )
+        self._hpf_w11[1] = IIR( a, b, 1 )
+        self._hpf_w11[2] = IIR( a, b, 1 )
+        
+        """
+        # Calculate based on article
+        b, a = bilinear([0,1], [1,17.5231], fs)
+        self._hpf_w11[0] = IIR( a, b, 1 )
 
+        b, a = bilinear([0,1], [1,44.1844], fs)
+        self._hpf_w11[1] = IIR( a, b, 1 )
+
+        b, a = bilinear([0,1], [1,0.1042], fs)
+        self._hpf_w11[2] = IIR( a, b, 1 )
+        """
 
     # ===============================================================================
     # @brief: Update washout filter
@@ -188,10 +221,16 @@ class WashoutFilter:
             a_t[n] = self.__scale_limit( a[n], self.WASHOUT_SCALE_A_T[n], self.WASHOUT_LIMIT_A_T[n] )
             a_t[n] = self._hpf_wht[n].update( a_t[n] )
             a_t[n] = self._hpf_wrtzt[n].update( a_t[n] )
+            
+            # Based on article
+            # a_t[n] = self._hpf_w22[n].update( a_t[n] )
 
         # Coordingation channel scaling/limitation/filtering
         for n in range(3):
             a_c[n]  = self.__scale_limit( a[n], self.WASHOUT_SCALE_A_C[n], self.WASHOUT_LIMIT_A_C[n] )
+
+        # NOTE: no need for yaw filtering!
+        for n in range(2):
             a_c[n] = self._lpf_w12[n].update( a_c[n] )
 
         # Tilt coordination
@@ -206,7 +245,7 @@ class WashoutFilter:
         # Rotaion scaling/limitation/filtering
         for n in range(3):
             beta_r[n] = self.__scale_limit( beta[n], self.WASHOUT_SCALE_BETA[n], self.WASHOUT_LIMIT_BETA[n] )
-            beta_r[n] = self._hpf_w22[n].update( beta_r[n] )
+            beta_r[n] = self._hpf_w11[n].update( beta_r[n] )
 
             # Add tilt to rotation channel
             beta_r[n] += a_c_tilt[n]

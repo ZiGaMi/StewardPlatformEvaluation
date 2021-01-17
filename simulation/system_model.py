@@ -67,24 +67,24 @@ INPUT_SIGNAL_ROUTE = INPUT_SIGNAL_ROUTE_TO_AY
 ## TRANSLATION CHANNEL SETTINGS
 
 # HPF Wht 2nd order filter
-WASHOUT_HPF_WHT_FC  = 2.0
-WASHOUT_HPF_WHT_Z   = 1.0
+WASHOUT_HPF_WHT_FC  = 4.0
+WASHOUT_HPF_WHT_Z   = 0.65
 
 # HPF Wrtzt 1st order filter
-WASHOUT_HPF_WRTZT_FC  = 1.0
+WASHOUT_HPF_WRTZT_FC  = 4.0
 
 # =====================================================
 ## COORDINATION CHANNEL SETTINGS
 
 # LPF W12 2nd order filter
-WASHOUT_LPF_W12_FC  = 5.0
-WASHOUT_LPF_W12_Z   = 1.0
+WASHOUT_LPF_W12_FC  = 0.75
+WASHOUT_LPF_W12_Z   = 1.75
 
 # =====================================================
 ## ROTATION CHANNEL SETTINGS
 
 # HPF W11 1st order filter
-WASHOUT_HPF_W11_FC  = .1
+WASHOUT_HPF_W11_FC  = 10.0
 
 
 # =====================================================
@@ -400,7 +400,22 @@ if __name__ == "__main__":
     
     # Generate stimuli signals
     for n in range(SAMPLE_NUM):
-        _x[n] = ( _fg.generate( _time[n] ))
+        #_x[n] = ( _fg.generate( _time[n] ))
+
+        # Some custom signal
+        
+        if _time[n] < 1.0:
+            _x[n] = 0.0
+        elif _time[n] < 2.0:
+            _x[n] = _x[n-1] + 0.5 / IDEAL_SAMPLE_FREQ
+        elif _time[n] < 3.0:
+            _x[n] = 0.5
+        elif _time[n] < 4.0:
+            _x[n] = _x[n-1] - 0.5 / IDEAL_SAMPLE_FREQ
+        elif _time[n] < 10.0:
+            _x[n] = 0
+        else:
+            _x[n] = 0
 
 
     # =====================================================================
