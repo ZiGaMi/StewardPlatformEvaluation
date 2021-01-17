@@ -187,6 +187,7 @@ class DriverFrame:
     def transform(self, a, beta):
         a_d = [0] * 3
         w_d = [0] * 3
+        beta_dot = [0] * 3
         
         # Calculate rotation derivitive
         beta_dot, self.beta_prev = self.__calculate_derivitive_on_vector( beta, self.beta_prev, self.dt )
@@ -202,7 +203,7 @@ class DriverFrame:
         _w_A_dot, self.w_prev = self.__calculate_derivitive_on_vector( w_d, self.w_prev, self.dt )
 
         # Calculate Aea matrix
-        Aea = self.__calculate_aea_matrix( _w_A[0], _w_A[1], _w_A[2], _w_A_dot[0], _w_A_dot[1], _w_A_dot[2] )
+        Aea = self.__calculate_aea_matrix( w_d[0], w_d[1], w_d[2], _w_A_dot[0], _w_A_dot[1], _w_A_dot[2] )
 
         # Calculate rotation affect on acceleration
         _a_rot = self.__multiply_matrix_and_vector( Aea, self.r_ea )
@@ -214,14 +215,14 @@ class DriverFrame:
         _a_EA = self.__sum_vectors( _a_AA, _a_rot )
 
         # Subtract gravity
-        _a_d = self.__subtract_vectors( _a_EA, ( self.__multiply_matrix_and_vector( Lia, [0,0,9.81] )))
+        a_d = self.__subtract_vectors( _a_EA, ( self.__multiply_matrix_and_vector( Lia, [0,0,9.81] )))
 
         return a_d, w_d
 
 
     # NOTE: p-x axis, q-y axis, r-z axis rotations
     def __calculate_aea_matrix(self, p,  q, r, p_dot, q_dot, r_dot):
-        Aps = [[0], [0], [0]] * 3
+        Aps = [[0,0,0], [0,0,0], [0,0,0]]
 
         Aps[0][0] = -(q**2) - (r**2)
         Aps[0][1] = (p*q) - r_dot
@@ -239,7 +240,7 @@ class DriverFrame:
 
     
     def __calculate_ra_matrix(self, roll, pitch):
-        Ra = [[0], [0], [0]] * 3
+        Ra = [[0,0,0], [0,0,0], [0,0,0]]
 
         s_roll = np.sin(roll)
         c_roll = np.cos(roll)
@@ -261,7 +262,7 @@ class DriverFrame:
         return Ra
 
     def __calculate_lia_matrix(self, roll, pitch, yaw):
-        Lia = [[0], [0], [0]] * 3
+        Lia = [[0,0,0], [0,0,0], [0,0,0]]
 
         s_roll  = np.sin(roll)
         c_roll  = np.cos(roll)
@@ -305,12 +306,12 @@ class DriverFrame:
 
     def __calculate_derivitive(self, x, x_prev, dt):
         _dx = ( x - x_prev ) / dt
-        return _dx, x
+        return _dx
 
     def __calculate_derivitive_on_vector(self, vec, vec_prev, dt):
         _dvec = [0] * 3
         for n in range(3):
-            _dvec = self.__calculate_derivitive( vec[n], vec_prev[n], dt )
+            _dvec[n] = self.__calculate_derivitive( vec[n], vec_prev[n], dt )
         return _dvec, vec
 
 
@@ -319,6 +320,7 @@ class DriverFrame:
 # ===============================================================================
 if __name__ == "__main__":
 
+    """
     # Time array
     _time, _dt = np.linspace( 0.0, TIME_WINDOW, num=SAMPLE_NUM, retstep=True )
 
@@ -424,7 +426,7 @@ if __name__ == "__main__":
     # =====================================================================
     #   SIMULATION
     # =====================================================================
-
+    
     # Apply filter
     for n in range(SAMPLE_NUM):
 
@@ -487,10 +489,10 @@ if __name__ == "__main__":
             _downsamp_cnt += 1
     
 
+    
 
 
-
-
+    
     # =============================================================================================
     ## PLOT CONFIGURATIONS
     # =============================================================================================
@@ -543,7 +545,7 @@ if __name__ == "__main__":
     plt.subplots_adjust(left=PLOT_ADJUST_LEFT, right=PLOT_ADJUST_RIGHT, top=PLOT_ADJUST_TOP, bottom=PLOT_ADJUST_BOTTOM)
     plt.show()
     
-
+    """
 
 # ===============================================================================
 #       END OF FILE
