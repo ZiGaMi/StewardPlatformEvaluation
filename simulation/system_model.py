@@ -42,7 +42,7 @@ TIME_WINDOW = 10
 
 ## Input signal shape
 INPUT_SIGNAL_FREQ = 0.1
-INPUT_SIGNAL_AMPLITUDE = 9.81/4
+INPUT_SIGNAL_AMPLITUDE = 2/4
 INPUT_SIGNAL_OFFSET = INPUT_SIGNAL_AMPLITUDE
 INPUT_SIGNAL_PHASE = -0.25
 
@@ -53,9 +53,9 @@ INPUT_SIGNAL_SELECTION = FunctionGenerator.FG_KIND_RECT
 INPUT_SIGNAL_ROUTE_TO_AX = 0
 INPUT_SIGNAL_ROUTE_TO_AY = 1
 INPUT_SIGNAL_ROUTE_TO_AZ = 2
-INPUT_SIGNAL_ROUTE_TO_WX = 3
-INPUT_SIGNAL_ROUTE_TO_WY = 4
-INPUT_SIGNAL_ROUTE_TO_WZ = 5
+INPUT_SIGNAL_ROUTE_TO_ROLL = 3
+INPUT_SIGNAL_ROUTE_TO_PITCH = 4
+INPUT_SIGNAL_ROUTE_TO_YAW = 5
 
 INPUT_SIGNAL_ROUTE = INPUT_SIGNAL_ROUTE_TO_AY
 
@@ -67,24 +67,35 @@ INPUT_SIGNAL_ROUTE = INPUT_SIGNAL_ROUTE_TO_AY
 ## TRANSLATION CHANNEL SETTINGS
 
 # HPF Wht 2nd order filter
-WASHOUT_HPF_WHT_FC  = .01
-WASHOUT_HPF_WHT_Z   = .05
+WASHOUT_HPF_WHT_FC  = 2.0
+WASHOUT_HPF_WHT_Z   = 1.0
 
 # HPF Wrtzt 1st order filter
-WASHOUT_HPF_WRTZT_FC  = .1
+WASHOUT_HPF_WRTZT_FC  = 1.0
 
 # =====================================================
 ## COORDINATION CHANNEL SETTINGS
 
 # LPF W12 2nd order filter
-WASHOUT_LPF_W12_FC  = .1
-WASHOUT_LPF_W12_Z   = .2
+WASHOUT_LPF_W12_FC  = 5.0
+WASHOUT_LPF_W12_Z   = 1.0
 
 # =====================================================
 ## ROTATION CHANNEL SETTINGS
 
 # HPF W11 1st order filter
 WASHOUT_HPF_W11_FC  = .1
+
+
+# =====================================================
+# DRIVERS HEAD LOCATION BASED ON PLATFOR
+# =====================================================
+
+# Vector from platform origin to drivers head
+# [x, y, z]
+# Note: Z axis is pointing downwards
+DRIVER_FRAME_VECTOR = [0.0, 0.0, -1.3]
+
 
 
 ## ****** END OF USER CONFIGURATIONS ******
@@ -117,7 +128,7 @@ def system_model_log_data(storage, data):
 def system_model_plot_a_signals(ax, x, a):
     ax.plot( x, a[0], "r", label="ax")
     ax.plot( x, a[1], "y", label="ay")
-    ax.plot( x, a[2], "g", label="az")
+    #ax.plot( x, a[2], "g", label="az")
 
 
 def system_model_plot_w_signals(ax, x, w):
@@ -128,7 +139,7 @@ def system_model_plot_w_signals(ax, x, w):
 
 def system_model_plot_signals(ax, x, a, w):
     system_model_plot_a_signals(ax, x, a)
-    system_model_plot_w_signals(ax, x, w)
+    #system_model_plot_w_signals(ax, x, w)
 
 def system_model_route_input_signal(inp_sig, sel):
     a = [0] * 3
@@ -215,7 +226,7 @@ class DriverFrame:
         _a_EA = self.__sum_vectors( _a_AA, _a_rot )
 
         # Subtract gravity
-        a_d = self.__subtract_vectors( _a_EA, ( self.__multiply_matrix_and_vector( Lia, [0,0,9.81] )))
+        a_d = self.__subtract_vectors( _a_EA, ( self.__multiply_matrix_and_vector( Lia, [0,0,-9.81] )))
 
         return a_d, w_d
 
@@ -320,7 +331,6 @@ class DriverFrame:
 # ===============================================================================
 if __name__ == "__main__":
 
-    """
     # Time array
     _time, _dt = np.linspace( 0.0, TIME_WINDOW, num=SAMPLE_NUM, retstep=True )
 
@@ -337,6 +347,10 @@ if __name__ == "__main__":
     _vest_sys_test = VestibularSystem()
     _vest_sys_wash = VestibularSystem()
 
+    # Driver frame
+    _df_test = DriverFrame( DRIVER_FRAME_VECTOR, 1/SAMPLE_FREQ)
+    _df_wash = DriverFrame( DRIVER_FRAME_VECTOR, 1/SAMPLE_FREQ)
+
 
     # =====================================================================
     # SIGNALS OF SYSTEM
@@ -344,7 +358,7 @@ if __name__ == "__main__":
     
     # System inputs: Accelerations & Angular velocities
     _a_in = [0] * 3
-    _w_in = [0] * 3
+    _beta_in = [0] * 3
 
     # Output of test vestibular system
     _a_sens_test = [0] * 3
@@ -395,7 +409,7 @@ if __name__ == "__main__":
 
     # System inputs: Accelerations & Angular velocities
     _y_d_a_in = [[0], [0], [0]] * 3
-    _y_d_w_in = [[0], [0], [0]] * 3
+    _y_d_beta_in = [[0], [0], [0]] * 3
 
     # Output of test vestibular system
     _y_d_a_sens_test = [[0], [0], [0]] * 3
@@ -443,24 +457,36 @@ if __name__ == "__main__":
             # =====================================================================
             #   MODEL INPUT SELECTION
             # =====================================================================
-            _a_in, _w_in = system_model_route_input_signal( _x[n], INPUT_SIGNAL_ROUTE )
+            _a_in, _beta_in = system_model_route_input_signal( _x[n], INPUT_SIGNAL_ROUTE )
+
 
             # =====================================================================
             #   SIMULATE MODEL
             # =====================================================================
 
+            ### TEST CHANNEL - REAL SENSATION
+
+            # Conver to drivers ref frame - REAL SENSATION (reference)
+            _a_df_test, _w_df_test = _df_test.transform( _a_in, _beta_in )
+
             # Vestibular system - REAL SENSATION (reference)
-            _a_sens_test, _w_sens_test = _vest_sys_test.update( _a_in, _w_in )
+            _a_sens_test, _w_sens_test = _vest_sys_test.update( _a_df_test, _w_df_test )
+
+
+
+            ### STEWARD CHANNEL - SIMULATED SENSATION
 
             # Washout filter
-            _a_wash, _w_wash = _filter_washout.update( _a_in, _w_in )
+            _a_wash, _w_wash = _filter_washout.update( _a_in, _beta_in )
+
+            # Convert to driver head
+            _a_df_wash, _w_df_wash = _df_wash.transform( _a_wash, _w_wash )
 
             # Vestibular system - WASHOUT SENSATION
-            _a_wash_sens, _w_wash_sens = _vest_sys_wash.update( _a_wash, _w_wash )
+            _a_wash_sens, _w_wash_sens = _vest_sys_wash.update( _a_df_wash, _w_df_wash )
 
             # Calculate error in real and washout sensation
             _a_sens_err, _w_sens_err = system_model_calc_sens_error(  _a_sens_test, _w_sens_test, _a_wash_sens, _w_wash_sens )
-
 
 
             # TODO: calculate positions & rotations
@@ -471,7 +497,7 @@ if __name__ == "__main__":
             #   LOG DATA FOR PLOTING
             # =====================================================================
             system_model_log_data( _y_d_a_in, _a_in )
-            system_model_log_data( _y_d_w_in, _w_in )
+            system_model_log_data( _y_d_beta_in, _beta_in )
 
             system_model_log_data( _y_d_a_sens_test, _a_sens_test )
             system_model_log_data( _y_d_w_sens_test, _w_sens_test )
@@ -513,23 +539,22 @@ if __name__ == "__main__":
     fig.suptitle( PLOT_MAIN_TITLE , fontsize=PLOT_MAIN_TITLE_SIZE )
 
     # Subplot 0
-    system_model_plot_signals( ax[0], _d_time, _y_d_a_in, _y_d_w_in )
+    system_model_plot_signals( ax[0], _d_time, _y_d_a_in, _y_d_beta_in )
     ax[0].set_title("Input acceleration & rotation", fontsize=PLOT_TITLE_SIZE)
     ax[0].grid(alpha=0.25)
     ax[0].legend(loc="upper right")
     ax[0].set_ylabel('Acceleration [m/s^2],\nAngular rate [rad/s]', fontsize=PLOT_AXIS_LABEL_SIZE)
         
     # Subplot 1
-    system_model_plot_signals( ax[1], _d_time, _y_d_a_wash, _y_d_w_wash )
-    ax[1].set_title("Washout filter output", fontsize=PLOT_TITLE_SIZE)
+    system_model_plot_signals( ax[1], _d_time, _y_d_a_sens_test, _y_d_w_sens_test )
+    ax[1].set_title("Vastibular system - reference feeling", fontsize=PLOT_TITLE_SIZE)
     ax[1].grid(alpha=0.25)
     ax[1].legend(loc="upper right")
     ax[1].set_ylabel('Acceleration [m/s^2],\nAngular rate [rad/s]', fontsize=PLOT_AXIS_LABEL_SIZE)
 
     # Subplot 2
     system_model_plot_signals( ax[2], _d_time, _y_d_a_wash_sens, _y_d_w_wash_sens )
-    system_model_plot_signals( ax[2], _d_time, _y_d_a_sens_test, _y_d_w_sens_test )
-    ax[2].set_title("Washout - actual feeling vs. Vastibular - reference feeling", fontsize=PLOT_TITLE_SIZE)
+    ax[2].set_title("Washout - actual feeling", fontsize=PLOT_TITLE_SIZE)
     ax[2].grid(alpha=0.25)
     ax[2].legend(loc="upper right")
     ax[2].set_ylabel('Acceleration [m/s^2],\nAngular rate [rad/s]', fontsize=PLOT_AXIS_LABEL_SIZE)
@@ -545,7 +570,6 @@ if __name__ == "__main__":
     plt.subplots_adjust(left=PLOT_ADJUST_LEFT, right=PLOT_ADJUST_RIGHT, top=PLOT_ADJUST_TOP, bottom=PLOT_ADJUST_BOTTOM)
     plt.show()
     
-    """
 
 # ===============================================================================
 #       END OF FILE

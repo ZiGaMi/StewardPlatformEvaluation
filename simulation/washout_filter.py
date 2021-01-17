@@ -107,7 +107,7 @@ class WashoutFilter:
     # SCALE AND LIMIT
     # [ rool, pitch, yaw]
     WASHOUT_SCALE_BETA = [ 1.0, 1.0, 1.0 ]
-    WASHOUT_LIMIT_BETA = [ 0.2, 0.2, 0.2 ]
+    WASHOUT_LIMIT_BETA = [ 0.5, 0.5, 0.5 ]
 
     # Gravity constant
     G = 9.18
