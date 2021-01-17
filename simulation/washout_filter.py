@@ -164,9 +164,13 @@ class WashoutFilter:
     # ===============================================================================
     # @brief: Update washout filter
     #
+    # @note:    There are many implementation of washout filter, some of them takes 
+    #           angular velocities as input other rotations. They result is equal if
+    #           some preconditions are taken into account.
+    #
     # @param[in]:    a          - Vector of accelerations
-    # @param[in]:    beta       - Vector of angular velocities
-    # @return:       a, beta  - Accelerations and angular rate filtered
+    # @param[in]:    beta       - Vector of rotations
+    # @return:       a, beta    - Accelerations and angular rate filtered
     # ===============================================================================
     def update(self, a, beta):
 

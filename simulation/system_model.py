@@ -168,25 +168,55 @@ class DriverFrame:
     # ===============================================================================
     def __init__(self, r_ea, dt):
         self.r_ea = r_ea
-        self.g = g
         self.dt = dt
 
+        # Previous values of rotations & angular rates 
+        # Used for derivitive calculations
+        self.beta_prev = [0] * 3
+        self.w_prev = [0] * 3
 
 
-    def update(self, a, w):
+    # ===============================================================================
+    # @brief: Transform to driver frame
+    #
+    # @param[in]:    a          - Vector of accelerations
+    # @param[in]:    beta       - Vector of rotations
+    # @return:       a_d, w_d   - Transformed accelerations and angular velocities
+    #                             to driver reference frame  
+    # ===============================================================================
+    def transform(self, a, beta):
         a_d = [0] * 3
-        a_w = [0] * 3
+        w_d = [0] * 3
+        
+        # Calculate rotation derivitive
+        beta_dot, self.beta_prev = self.__calculate_derivitive_on_vector( beta, self.beta_prev, self.dt )
 
         # Calculate needed matrixes
-        Lia = self.__calculate_lia_matrix( w[0], w[1], w[2] )
-        Aea = self.__calculate_aea_matrix( w[0], w[1], w[2], w_dot[0], w_dot[1], w_dot[2] )
-        #Ra = self.__calculate_ra_matrix(  ) 
+        Lia = self.__calculate_lia_matrix( beta[0], beta[1], beta[2] )
+        Ra = self.__calculate_ra_matrix( beta[0], beta[1] ) 
 
-        ## Apply rotation
-        _a_AA = self.__multiply_matrix_and_vector(Lia)
+        # Calculate driver angular velocities
+        w_d = self.__multiply_matrix_and_vector(Ra, beta_dot)
 
+        # Calculate derivitive of angular rate
+        _w_A_dot, self.w_prev = self.__calculate_derivitive_on_vector( w_d, self.w_prev, self.dt )
 
-        return a_d, a_w
+        # Calculate Aea matrix
+        Aea = self.__calculate_aea_matrix( _w_A[0], _w_A[1], _w_A[2], _w_A_dot[0], _w_A_dot[1], _w_A_dot[2] )
+
+        # Calculate rotation affect on acceleration
+        _a_rot = self.__multiply_matrix_and_vector( Aea, self.r_ea )
+
+        # Apply rotation
+        _a_AA = self.__multiply_matrix_and_vector( Lia, a )
+
+        # Add rotations effect
+        _a_EA = self.__sum_vectors( _a_AA, _a_rot )
+
+        # Subtract gravity
+        _a_d = self.__subtract_vectors( _a_EA, ( self.__multiply_matrix_and_vector( Lia, [0,0,9.81] )))
+
+        return a_d, w_d
 
 
     # NOTE: p-x axis, q-y axis, r-z axis rotations
@@ -272,7 +302,17 @@ class DriverFrame:
         for i in range(3):
             res_vector[i] = vec_1[i] - vec_2[i]
         return res_vector
-    
+
+    def __calculate_derivitive(self, x, x_prev, dt):
+        _dx = ( x - x_prev ) / dt
+        return _dx, x
+
+    def __calculate_derivitive_on_vector(self, vec, vec_prev, dt):
+        _dvec = [0] * 3
+        for n in range(3):
+            _dvec = self.__calculate_derivitive( vec[n], vec_prev[n], dt )
+        return _dvec, vec
+
 
 # ===============================================================================
 #       MAIN ENTRY
