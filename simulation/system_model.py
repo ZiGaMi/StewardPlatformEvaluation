@@ -230,8 +230,17 @@ class DriverFrame:
 
         return a_d, w_d
 
-
-    # NOTE: p-x axis, q-y axis, r-z axis rotations
+    # ===============================================================================
+    # @brief: Caclulate Aea matrix - inertial acceleration matrix
+    #
+    # @param[in]:    p      - Angular veloctiy across x-axis
+    # @param[in]:    q      - Angular veloctiy across y-axis
+    # @param[in]:    r      - Angular veloctiy across z-axis
+    # @param[in]:    p_dot  - Derivative of angular veloctiy across x-axis
+    # @param[in]:    q_dot  - Derivative of angular veloctiy across y-axis
+    # @param[in]:    r_dot  - Derivative of angular veloctiy across z-axis
+    # @return:       Aps    - Inertial acceleration matrix
+    # ===============================================================================
     def __calculate_aea_matrix(self, p,  q, r, p_dot, q_dot, r_dot):
         Aps = [[0,0,0], [0,0,0], [0,0,0]]
 
@@ -249,7 +258,13 @@ class DriverFrame:
 
         return Aps
 
-    
+    # ===============================================================================
+    # @brief: Calculate RA matrix - transformation matrix to S frame
+    #
+    # @param[in]:    roll   - Rotation across x-axis
+    # @param[in]:    pitch  - Rotation across y-axis
+    # @return:       Ra     - Transformation matrix to S frame
+    # =============================================================================== 
     def __calculate_ra_matrix(self, roll, pitch):
         Ra = [[0,0,0], [0,0,0], [0,0,0]]
 
@@ -272,6 +287,14 @@ class DriverFrame:
 
         return Ra
 
+    # ===============================================================================
+    # @brief: Calculate Lia - rotation matrix
+    #
+    # @param[in]:    roll   - Rotation across x-axis
+    # @param[in]:    pitch  - Rotation across y-axis
+    # @param[in]:    yaw    - Rotation across z-axis
+    # @return:       Lia    - Rotation matrix
+    # =============================================================================== 
     def __calculate_lia_matrix(self, roll, pitch, yaw):
         Lia = [[0,0,0], [0,0,0], [0,0,0]]
 
@@ -296,6 +319,13 @@ class DriverFrame:
 
         return Lia
 
+    # ===============================================================================
+    # @brief: Multiply 3x3 matrix and 3x1 vector
+    #
+    # @param[in]:    matrix     - Matrix
+    # @param[in]:    vector     - Vector 
+    # @return:       res_vector - Resulting vector
+    # =============================================================================== 
     def __multiply_matrix_and_vector(self, matrix, vector):
         res_vector = [0] * 3
         for i in range(3):
@@ -303,22 +333,53 @@ class DriverFrame:
                 res_vector[i] += matrix[i][j] * vector[j]
         return res_vector
 
+    # ===============================================================================
+    # @brief: Sum two vectors
+    #
+    # @param[in]:    vec_1      - Vector 1
+    # @param[in]:    vec_2      - Vector 2
+    # @return:       res_vector - Sum of vector 1 and vector 2
+    # =============================================================================== 
     def __sum_vectors(self, vec_1, vec_2):
         res_vector = [0] * 3
         for i in range(3):
             res_vector[i] = vec_1[i] + vec_2[i]
         return res_vector
 
+    # ===============================================================================
+    # @brief: Subtract two vectors
+    #
+    # @param[in]:    vec_1      - Vector 1
+    # @param[in]:    vec_2      - Vector 2
+    # @return:       res_vector - Difference of vector 1 and vector 2
+    # =============================================================================== 
     def __subtract_vectors(self, vec_1, vec_2):
         res_vector = [0] * 3
         for i in range(3):
             res_vector[i] = vec_1[i] - vec_2[i]
         return res_vector
 
+    # ===============================================================================
+    # @brief: Derive
+    #
+    # @param[in]:    x      - Current value of variable
+    # @param[in]:    x_prev - Previous value of variable
+    # @param[in]:    dt     - Change in time
+    # @return:       _dx    - Derivitive of x variable
+    # =============================================================================== 
     def __calculate_derivitive(self, x, x_prev, dt):
         _dx = ( x - x_prev ) / dt
         return _dx
 
+
+    # ===============================================================================
+    # @brief: Derive vector
+    #
+    # @param[in]:    vec        - Current value of vector
+    # @param[in]:    vec_prev   - Previous value of vector
+    # @param[in]:    dt         - Change in time
+    # @return:       _dvec      - Derivitive of vector
+    # =============================================================================== 
     def __calculate_derivitive_on_vector(self, vec, vec_prev, dt):
         _dvec = [0] * 3
         for n in range(3):
