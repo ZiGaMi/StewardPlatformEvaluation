@@ -58,24 +58,46 @@ SAMPLE_NUM = int(( IDEAL_SAMPLE_FREQ * TIME_WINDOW ) + 1.0 )
 ## TRANSLATION CHANNEL SETTINGS
 
 # HPF Wht 2nd order filter
-WASHOUT_HPF_WHT_FC  = 1.0
-WASHOUT_HPF_WHT_Z   = .7071
+WASHOUT_HPF_WHT_FC_X  = 1.0
+WASHOUT_HPF_WHT_Z_X   = .7071
+WASHOUT_HPF_WHT_FC_Y  = 1.0
+WASHOUT_HPF_WHT_Z_Y   = .7071
+WASHOUT_HPF_WHT_FC_Z  = 1.0
+WASHOUT_HPF_WHT_Z_Z   = .7071
+
+WASHOUT_HPF_WHT_COEFFICIENT = [[ WASHOUT_HPF_WHT_FC_X, WASHOUT_HPF_WHT_Z_X ],
+                               [ WASHOUT_HPF_WHT_FC_Y, WASHOUT_HPF_WHT_Z_Y ],
+                               [ WASHOUT_HPF_WHT_FC_Z, WASHOUT_HPF_WHT_Z_Z ]]
+
 
 # HPF Wrtzt 1st order filter
-WASHOUT_HPF_WRTZT_FC  = 1.0
+WASHOUT_HPF_WRTZT_FC_X  = 1.0
+WASHOUT_HPF_WRTZT_FC_Y  = 1.0
+WASHOUT_HPF_WRTZT_FC_Z  = 1.0
+
+WASHOUT_HPF_WRTZT_COEFFICIENT = [ WASHOUT_HPF_WRTZT_FC_X, WASHOUT_HPF_WRTZT_FC_Y, WASHOUT_HPF_WRTZT_FC_Z ]
 
 # =====================================================
 ## COORDINATION CHANNEL SETTINGS
 
 # LPF W12 2nd order filter
-WASHOUT_LPF_W12_FC  = 1.0
-WASHOUT_LPF_W12_Z   = 1.0
+WASHOUT_LPF_W12_FC_ROLL     = 1.0
+WASHOUT_LPF_W12_Z_ROLL      = 1.0
+WASHOUT_LPF_W12_FC_PITCH    = 1.0
+WASHOUT_LPF_W12_Z_PITCH     = 1.0
+
+WASHOUT_LPF_W12_COEFFICIENT = [[ WASHOUT_LPF_W12_FC_ROLL, WASHOUT_LPF_W12_Z_ROLL ],
+                               [ WASHOUT_LPF_W12_FC_PITCH, WASHOUT_LPF_W12_Z_PITCH ]]
 
 # =====================================================
 ## ROTATION CHANNEL SETTINGS
 
 # HPF W11 1st order filter
-WASHOUT_HPF_W11_FC  = 1.0
+WASHOUT_HPF_W11_FC_ROLL     = 1.0
+WASHOUT_HPF_W11_FC_PITCH    = 1.0
+WASHOUT_HPF_W11_FC_YAW      = 1.0
+
+WASHOUT_HPF_W11_COEFFICIENT = [ WASHOUT_HPF_W11_FC_ROLL, WASHOUT_HPF_W11_FC_PITCH, WASHOUT_HPF_W11_FC_YAW ]
 
 
 ## ****** END OF USER CONFIGURATIONS ******
@@ -133,66 +155,63 @@ class WashoutFilter:
     # ===============================================================================
     def __init__(self, Wht, Wrtzt, W11, W12, fs):
 
+        # -----------------------------------------------
         # Translation channel filters
-        self._hpf_w22 = [0] * 3
-        
-        b, a = calculate_2nd_order_HPF_coeff( Wht[0], Wht[1], fs )
+        # -----------------------------------------------
         self._hpf_wht = [0] * 3
+        self._hpf_wrtzt = [0] * 3
+        
+        # X
+        b, a = calculate_2nd_order_HPF_coeff( Wht[0][0], Wht[0][1], fs )
         self._hpf_wht[0] = IIR( a, b, 2 )
+
+        b, a = calculate_1nd_order_HPF_coeff( Wrtzt[0], fs )
+        self._hpf_wrtzt[0] = IIR( a, b, 1 )
+
+        # Y
+        b, a = calculate_2nd_order_HPF_coeff( Wht[1][0], Wht[1][1], fs )
         self._hpf_wht[1] = IIR( a, b, 2 )
+
+        b, a = calculate_1nd_order_HPF_coeff( Wrtzt[1], fs )
+        self._hpf_wrtzt[1] = IIR( a, b, 1 )
+
+        # Z
+        b, a = calculate_2nd_order_HPF_coeff( Wht[2][0], Wht[2][1], fs )
         self._hpf_wht[2] = IIR( a, b, 2 )
 
-        b, a = calculate_1nd_order_HPF_coeff( Wrtzt, fs )
-        self._hpf_wrtzt = [0] * 3
-        self._hpf_wrtzt[0] = IIR( a, b, 1 )
-        self._hpf_wrtzt[1] = IIR( a, b, 1 )
+        b, a = calculate_1nd_order_HPF_coeff( Wrtzt[2], fs )
         self._hpf_wrtzt[2] = IIR( a, b, 1 )
         
-
-        # Calculate based on article
-        """
-        b, a = bilinear([1,0,0,0], [1,20.1065,13.1799,10.1655], fs)
-        self._hpf_w22[0] = IIR( a, b, 3 )
-
-        b, a = bilinear([1,0,0,0], [1,11.1047,3.6153,0.0722], fs)
-        self._hpf_w22[1] = IIR( a, b, 3 )
-
-        b, a = bilinear([1,0,0,0], [1,11.1047,3.6153,0.0722], fs)
-        self._hpf_w22[2] = IIR( a, b, 3 )
-        """
-
+        # -----------------------------------------------
         # Coordination channel filters
+        # -----------------------------------------------
         self._lpf_w12 = [0] * 3
-        b, a = calculate_2nd_order_LPF_coeff( W12[0], W12[1], fs )
-        self._lpf_w12[0] = IIR( a, b, 2 )
-        self._lpf_w12[1] = IIR( a, b, 2 )
-        
-        """
-        # Calculate based on article
-        b, a = bilinear([0,0,1704.4], [1,7.6094,1704.4], fs)
-        self._lpf_w12[0] = IIR( a, b, 2 )
-        b, a = bilinear([0,0,1222.3], [1,0.1960,1223.3], fs)
-        self._lpf_w12[1] = IIR( a, b, 2 )
-        """
 
+        # Roll
+        b, a = calculate_2nd_order_LPF_coeff( W12[0][0], W12[0][1], fs )
+        self._lpf_w12[0] = IIR( a, b, 2 )
+
+        # Pitch
+        b, a = calculate_2nd_order_LPF_coeff( W12[1][0], W12[1][1], fs )
+        self._lpf_w12[1] = IIR( a, b, 2 )        
+
+        # -----------------------------------------------
         # Rotation channel filters
+        # -----------------------------------------------
         self._hpf_w11 = [0] * 3
-        b, a = calculate_1nd_order_HPF_coeff( W11, fs )
-        self._hpf_w11[0] = IIR( a, b, 1 )
-        self._hpf_w11[1] = IIR( a, b, 1 )
-        self._hpf_w11[2] = IIR( a, b, 1 )
-        
-        """
-        # Calculate based on article
-        b, a = bilinear([0,1], [1,17.5231], fs)
+
+        # Roll
+        b, a = calculate_1nd_order_HPF_coeff( W11[0], fs )
         self._hpf_w11[0] = IIR( a, b, 1 )
 
-        b, a = bilinear([0,1], [1,44.1844], fs)
+        # Pitch
+        b, a = calculate_1nd_order_HPF_coeff( W11[1], fs )
         self._hpf_w11[1] = IIR( a, b, 1 )
 
-        b, a = bilinear([0,1], [1,0.1042], fs)
+        # Yaw
+        b, a = calculate_1nd_order_HPF_coeff( W11[2], fs )
         self._hpf_w11[2] = IIR( a, b, 1 )
-        """
+
 
     # ===============================================================================
     # @brief: Update washout filter
@@ -221,9 +240,6 @@ class WashoutFilter:
             a_t[n] = self.__scale_limit( a[n], self.WASHOUT_SCALE_A_T[n], self.WASHOUT_LIMIT_A_T[n] )
             a_t[n] = self._hpf_wht[n].update( a_t[n] )
             a_t[n] = self._hpf_wrtzt[n].update( a_t[n] )
-            
-            # Based on article
-            # a_t[n] = self._hpf_w22[n].update( a_t[n] )
 
         # Coordingation channel scaling/limitation/filtering
         for n in range(3):
@@ -285,10 +301,9 @@ if __name__ == "__main__":
     # Time array
     _time, _dt = np.linspace( 0.0, TIME_WINDOW, num=SAMPLE_NUM, retstep=True )
 
-    
     # Filter object
-    _filter_washout = WashoutFilter(    Wht=[WASHOUT_HPF_WHT_FC, WASHOUT_HPF_WHT_Z], Wrtzt=WASHOUT_HPF_WRTZT_FC, \
-                                        W11=WASHOUT_HPF_W11_FC, W12=[WASHOUT_LPF_W12_FC, WASHOUT_LPF_W12_Z], fs=SAMPLE_FREQ )
+    _filter_washout = WashoutFilter(    Wht=WASHOUT_HPF_WHT_COEFFICIENT, Wrtzt=WASHOUT_HPF_WRTZT_COEFFICIENT, \
+                                        W11=WASHOUT_HPF_W11_COEFFICIENT, W12=WASHOUT_LPF_W12_COEFFICIENT, fs=SAMPLE_FREQ )
 
     # Filter input/output
     _x = [ 0 ] * SAMPLE_NUM
@@ -310,7 +325,22 @@ if __name__ == "__main__":
     
     # Generate stimuli signals
     for n in range(SAMPLE_NUM):
-        _x[n] = ( _fg.generate( _time[n] ))
+        #_x[n] = ( _fg.generate( _time[n] ))
+
+        # Some custom signal
+        if _time[n] < 1.0:
+            _x[n] = 0.0
+        elif _time[n] < 2.0:
+            _x[n] = _x[n-1] + 0.5 / IDEAL_SAMPLE_FREQ
+        elif _time[n] < 3.0:
+            _x[n] = 0.5
+        elif _time[n] < 4.0:
+            _x[n] = _x[n-1] - 0.5 / IDEAL_SAMPLE_FREQ
+        elif _time[n] < 10.0:
+            _x[n] = 0
+        else:
+            _x[n] = 0
+
  
     # Apply filter
     for n in range(SAMPLE_NUM):
@@ -324,7 +354,7 @@ if __name__ == "__main__":
             _d_time.append( _time[n])
             _x_d.append( _x[n] )
 
-            p, r = _filter_washout.update( [ _x[n], 0, 0 ], [ 0, 0, 0 ] )
+            p, r = _filter_washout.update( [ 0, _x[n], 0 ], [ 0, 0, 0 ] )
             _y_d_p[0].append( p[0] )
             _y_d_p[1].append( p[1] )
             _y_d_p[2].append( p[2] )

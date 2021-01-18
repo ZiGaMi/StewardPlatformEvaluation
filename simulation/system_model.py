@@ -38,7 +38,7 @@ IDEAL_SAMPLE_FREQ = 10000.0
 ## Time window
 #
 # Unit: second
-TIME_WINDOW = 10
+TIME_WINDOW = 15
 
 ## Input signal shape
 INPUT_SIGNAL_FREQ = 0.1
@@ -67,24 +67,48 @@ INPUT_SIGNAL_ROUTE = INPUT_SIGNAL_ROUTE_TO_AY
 ## TRANSLATION CHANNEL SETTINGS
 
 # HPF Wht 2nd order filter
-WASHOUT_HPF_WHT_FC  = 4.0
-WASHOUT_HPF_WHT_Z   = 0.65
+WASHOUT_HPF_WHT_FC_X  = 1.0
+WASHOUT_HPF_WHT_Z_X   = .7071
+WASHOUT_HPF_WHT_FC_Y  = 1.0
+WASHOUT_HPF_WHT_Z_Y   = .7071
+WASHOUT_HPF_WHT_FC_Z  = 1.0
+WASHOUT_HPF_WHT_Z_Z   = .7071
+
+WASHOUT_HPF_WHT_COEFFICIENT = [[ WASHOUT_HPF_WHT_FC_X, WASHOUT_HPF_WHT_Z_X ],
+                               [ WASHOUT_HPF_WHT_FC_Y, WASHOUT_HPF_WHT_Z_Y ],
+                               [ WASHOUT_HPF_WHT_FC_Z, WASHOUT_HPF_WHT_Z_Z ]]
+
 
 # HPF Wrtzt 1st order filter
-WASHOUT_HPF_WRTZT_FC  = 4.0
+WASHOUT_HPF_WRTZT_FC_X  = 1.0
+WASHOUT_HPF_WRTZT_FC_Y  = 1.0
+WASHOUT_HPF_WRTZT_FC_Z  = 1.0
+
+WASHOUT_HPF_WRTZT_COEFFICIENT = [ WASHOUT_HPF_WRTZT_FC_X, WASHOUT_HPF_WRTZT_FC_Y, WASHOUT_HPF_WRTZT_FC_Z ]
 
 # =====================================================
 ## COORDINATION CHANNEL SETTINGS
 
 # LPF W12 2nd order filter
-WASHOUT_LPF_W12_FC  = 0.75
-WASHOUT_LPF_W12_Z   = 1.75
+WASHOUT_LPF_W12_FC_ROLL     = 1.0
+WASHOUT_LPF_W12_Z_ROLL      = 1.0
+WASHOUT_LPF_W12_FC_PITCH    = 1.0
+WASHOUT_LPF_W12_Z_PITCH     = 1.0
+
+WASHOUT_LPF_W12_COEFFICIENT = [[ WASHOUT_LPF_W12_FC_ROLL, WASHOUT_LPF_W12_Z_ROLL ],
+                               [ WASHOUT_LPF_W12_FC_PITCH, WASHOUT_LPF_W12_Z_PITCH ]]
 
 # =====================================================
 ## ROTATION CHANNEL SETTINGS
 
 # HPF W11 1st order filter
-WASHOUT_HPF_W11_FC  = 10.0
+WASHOUT_HPF_W11_FC_ROLL     = 1.0
+WASHOUT_HPF_W11_FC_PITCH    = 1.0
+WASHOUT_HPF_W11_FC_YAW      = 1.0
+
+WASHOUT_HPF_W11_COEFFICIENT = [ WASHOUT_HPF_W11_FC_ROLL, WASHOUT_HPF_W11_FC_PITCH, WASHOUT_HPF_W11_FC_YAW ]
+
+
 
 
 # =====================================================
@@ -400,9 +424,9 @@ if __name__ == "__main__":
     #   COMPONENTS OF SYSTEM
     # =====================================================================
 
-    # Wahsout filter
-    _filter_washout = WashoutFilter(    Wht=[WASHOUT_HPF_WHT_FC, WASHOUT_HPF_WHT_Z], Wrtzt=WASHOUT_HPF_WRTZT_FC, \
-                                        W11=WASHOUT_HPF_W11_FC, W12=[WASHOUT_LPF_W12_FC, WASHOUT_LPF_W12_Z], fs=SAMPLE_FREQ )
+    # Filter object
+    _filter_washout = WashoutFilter(    Wht=WASHOUT_HPF_WHT_COEFFICIENT, Wrtzt=WASHOUT_HPF_WRTZT_COEFFICIENT, \
+                                        W11=WASHOUT_HPF_W11_COEFFICIENT, W12=WASHOUT_LPF_W12_COEFFICIENT, fs=SAMPLE_FREQ )
 
     # Vestibular systems
     _vest_sys_test = VestibularSystem()
@@ -464,17 +488,28 @@ if __name__ == "__main__":
         #_x[n] = ( _fg.generate( _time[n] ))
 
         # Some custom signal
-        
-        if _time[n] < 1.0:
+        CUSTOM_SIG_MAX = 1
+
+        DELAY_TIME = 1.0
+        RISE_TIME = 1.0
+        FALL_TIME = 1.0
+        DURATION_OF_MAX = 6
+
+        if _time[n] < DELAY_TIME:
             _x[n] = 0.0
-        elif _time[n] < 2.0:
-            _x[n] = _x[n-1] + 0.5 / IDEAL_SAMPLE_FREQ
-        elif _time[n] < 3.0:
-            _x[n] = 0.5
-        elif _time[n] < 4.0:
-            _x[n] = _x[n-1] - 0.5 / IDEAL_SAMPLE_FREQ
-        elif _time[n] < 10.0:
+        
+        elif _time[n] < ( RISE_TIME + DELAY_TIME ):
+            _x[n] = _x[n-1] + CUSTOM_SIG_MAX / IDEAL_SAMPLE_FREQ
+        
+        elif _time[n] < ( DURATION_OF_MAX + RISE_TIME + DELAY_TIME ):
+            _x[n] = CUSTOM_SIG_MAX
+        
+        elif _time[n] < ( DURATION_OF_MAX + RISE_TIME + FALL_TIME + DELAY_TIME ):
+            _x[n] = _x[n-1] - CUSTOM_SIG_MAX / IDEAL_SAMPLE_FREQ
+        
+        elif _time[n] < TIME_WINDOW:
             _x[n] = 0
+        
         else:
             _x[n] = 0
 
