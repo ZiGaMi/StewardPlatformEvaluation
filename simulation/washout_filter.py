@@ -141,7 +141,8 @@ class WashoutFilter:
                             [0,         0,      0] ]
 
     # TILT LIMIT
-    WASHOUT_TILT_LIMIT = [ 0.2, 0.2, 0.2 ]
+    WASHOUT_TILT_LIMIT = [ 0.2, 0.2, 0.2 ] # m/s^2
+    WASHOUT_TILT_RATE_LIM_DEG = 10 #deg/s
 
     # ===============================================================================
     # @brief: Initialization of filter
@@ -154,6 +155,7 @@ class WashoutFilter:
     # @return:       void
     # ===============================================================================
     def __init__(self, Wht, Wrtzt, W11, W12, fs):
+        self.dt = 1 / fs
 
         # -----------------------------------------------
         # Translation channel filters
@@ -194,6 +196,9 @@ class WashoutFilter:
         # Pitch
         b, a = calculate_2nd_order_LPF_coeff( W12[1][0], W12[1][1], fs )
         self._lpf_w12[1] = IIR( a, b, 2 )        
+
+        # Previous value of tilt for rate limiter
+        self.a_c_tilt_prev = [0] * 2
 
         # -----------------------------------------------
         # Rotation channel filters
@@ -255,8 +260,10 @@ class WashoutFilter:
             for j in range(3):
                 a_c_tilt[n] += self.WASHOUT_TILT_MATRIX[n][j] * a_c[j]
 
-        # Rate limiter
-        # TODO: 
+        # Tilt rate limiter
+        for n in range(2):
+            a_c_tilt[n] = self.__rate_limit( a_c_tilt[n], self.a_c_tilt_prev[n], (self.WASHOUT_TILT_RATE_LIM_DEG*np.pi/180)  * self.dt )
+            self.a_c_tilt_prev[n] = a_c_tilt[n]
 
         # Rotaion scaling/limitation/filtering
         for n in range(3):
@@ -291,6 +298,30 @@ class WashoutFilter:
 
         return y
 
+    # NOTE: usage: __rate_limit( r[0], _roll_lim_prev, 10*np.pi/180 / SAMPLE_FREQ )
+
+    # ===============================================================================
+    # @brief: Rate limiter
+    #
+    # @note: rate_lim parameter takes into account also dt. 
+    #
+    # @param[in]:    x          - Input signal value
+    # @param[in]:    x_prev     - Previous value of input signal
+    # @param[in]:    rate_lim   - Rate limit
+    # @return:       _x_lim     - Rate limited input signal
+    # ===============================================================================
+    def __rate_limit(self, x, x_prev, rate_lim):
+        _dx = ( x - x_prev )
+        _x_lim = x_prev
+
+        if _dx > rate_lim:
+            _x_lim += rate_lim
+        elif _dx < -rate_lim:
+            _x_lim -= rate_lim
+        else:
+            _x_lim += _dx
+
+        return _x_lim
 
 
 # ===============================================================================
@@ -327,6 +358,7 @@ if __name__ == "__main__":
     for n in range(SAMPLE_NUM):
         #_x[n] = ( _fg.generate( _time[n] ))
 
+        
         # Some custom signal
         if _time[n] < 1.0:
             _x[n] = 0.0
@@ -340,7 +372,8 @@ if __name__ == "__main__":
             _x[n] = 0
         else:
             _x[n] = 0
-
+        
+        
  
     # Apply filter
     for n in range(SAMPLE_NUM):
@@ -354,14 +387,13 @@ if __name__ == "__main__":
             _d_time.append( _time[n])
             _x_d.append( _x[n] )
 
-            p, r = _filter_washout.update( [ 0, _x[n], 0 ], [ 0, 0, 0 ] )
+            p, r = _filter_washout.update( [ _x[n]/10, _x[n], 0 ], [ 0, 0, 0 ] )
             _y_d_p[0].append( p[0] )
             _y_d_p[1].append( p[1] )
             _y_d_p[2].append( p[2] )
             _y_d_r[0].append( r[0]*180/np.pi )
             _y_d_r[1].append( r[1]*180/np.pi )
             _y_d_r[2].append( r[2]*180/np.pi )
-
         else:
             _downsamp_cnt += 1
     
