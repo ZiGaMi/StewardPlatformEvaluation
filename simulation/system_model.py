@@ -132,18 +132,6 @@ SAMPLE_NUM = int(( IDEAL_SAMPLE_FREQ * TIME_WINDOW ) + 1.0 )
 #       FUNCTIONS
 # ===============================================================================
 
-def system_model_calc_sens_error(a_ref, w_ref, a_act, w_act):
-    
-    a_err = [0] * 3
-    w_err = [0] * 3
-    
-    for n in range(3):
-        a_err[n] = a_ref[n] - a_act[n]
-        w_err[n] = w_ref[n] - w_act[n]
-
-    return a_err, w_err
-
-
 def system_model_log_data(storage, data):
     for n in range(3):
         storage[n].append( data[n] )
@@ -411,6 +399,119 @@ class DriverFrame:
         return _dvec, vec
 
 
+
+# Complete system model for evaluation of error
+class SystemModel:
+
+    # ===============================================================================
+    # @brief: Initialization of system module
+    #
+    # @param[in]:    Wht        - Translation channel HPF coefficient
+    # @param[in]:    Wrtzt      - Translation channel HPF (return to zero) coefficient
+    # @param[in]:    W11        - Rotation channel HPF coefficient
+    # @param[in]:    W12        - Tilt coordination channel LPF coefficient
+    # @param[in]:    fs         - Sample frequency
+    # @return:       void
+    # ===============================================================================
+    def __init__(self, Wht, Wrtzt, W11, W12, fs):
+
+        # Filter object
+        self._filter_washout = WashoutFilter(    Wht=WASHOUT_HPF_WHT_COEFFICIENT, Wrtzt=WASHOUT_HPF_WRTZT_COEFFICIENT, \
+                                                 W11=WASHOUT_HPF_W11_COEFFICIENT, W12=WASHOUT_LPF_W12_COEFFICIENT, fs=fs )
+
+        # Vestibular systems
+        self._vest_sys_test = VestibularSystem()
+        self._vest_sys_wash = VestibularSystem()
+
+        # Driver frame
+        self._df_test = DriverFrame( DRIVER_FRAME_VECTOR, 1/fs)
+        self._df_wash = DriverFrame( DRIVER_FRAME_VECTOR, 1/fs)
+
+
+    # ===============================================================================
+    # @brief: Update system module
+    #
+    # @param[in]:    a_in           - Vector of accelerations
+    # @param[in]:    beta_in        - Vector of rotations
+    # @return:       _a_sens_err    - Error in acceleration 
+    # @return:       _w_sens_err    - Error in angular rates
+    # ===============================================================================
+    def update(self, a_in, beta_in):
+
+        ### TEST CHANNEL - REAL SENSATION
+
+        # Conver to drivers ref frame - REAL SENSATION (reference)
+        _a_df_test, _w_df_test = self._df_test.transform( a_in, beta_in )
+
+        # Vestibular system - REAL SENSATION (reference)
+        self._a_sens_test, self._w_sens_test = self._vest_sys_test.update( _a_df_test, _w_df_test )
+
+        ### STEWARD CHANNEL - SIMULATED SENSATION
+
+        # Washout filter
+        self._a_wash, self._beta_wash = self._filter_washout.update( a_in, beta_in )
+
+        # Convert to driver head
+        _a_df_wash, _w_df_wash = self._df_wash.transform( self._a_wash, self._beta_wash )
+
+        # Vestibular system - WASHOUT SENSATION
+        self._a_wash_sens, self._w_wash_sens = self._vest_sys_wash.update( _a_df_wash, _w_df_wash )
+
+        # Calculate error in real and washout sensation
+        _a_sens_err, _w_sens_err = self.__system_model_calc_sens_error(  _a_sens_test, _w_sens_test, _a_wash_sens, _w_wash_sens )
+
+        return _a_sens_err, _w_sens_err
+
+
+    # ===============================================================================
+    # @brief: Calculate system error
+    #
+    # @param[in]:    a_ref  - Accelerations from reference model
+    # @param[in]:    w_ref  - Angular rates from reference model
+    # @param[in]:    a_act  - Actual acceleration applied to platform
+    # @param[in]:    w_act  - Actual angular rates applied to platform
+    # @return:       a_err  - Error in acceleration 
+    # @return:       w_err  - Error in angular rates
+    # ===============================================================================
+    def __system_model_calc_sens_error(self, a_ref, w_ref, a_act, w_act):
+    
+        a_err = [0] * 3
+        w_err = [0] * 3
+        
+        for n in range(3):
+            a_err[n] = a_ref[n] - a_act[n]
+            w_err[n] = w_ref[n] - w_act[n]
+
+        return a_err, w_err
+
+    # ===============================================================================
+    # @brief: Get washout intermediate signal output
+    #
+    # @return:  _a_wash    - Acceleration as output of washout filter 
+    # @return:  _beta_wash - Rotations as output of washout filter 
+    # ===============================================================================
+    def system_model_get_washout_filter_output(self):
+        return self._a_wash, self._beta_wash
+
+    # ===============================================================================
+    # @brief: Get reference sensation intermediate signal output
+    #
+    # @return:  _a_sens_test - Acceleration as output of ref vestibular system
+    # @return:  _w_sens_test - Angular rates as output of ref vestibular system
+    # ===============================================================================
+    def system_model_get_reference_sensation(self):
+        return self._a_sens_test, self._w_sens_test
+
+    # ===============================================================================
+    # @brief: Get actual sensation intermediate signal output
+    #
+    # @return:  _a_sens_sens - Acceleration as output of washout vestibular system
+    # @return:  _w_sens_sens - Angular rates as output of washout vestibular system
+    # ===============================================================================
+    def system_model_get_actual_sensation(self):
+        return self._a_wash_sens, self._w_wash_sens
+
+
 # ===============================================================================
 #       MAIN ENTRY
 # ===============================================================================
@@ -421,21 +522,10 @@ if __name__ == "__main__":
 
     
     # =====================================================================
-    #   COMPONENTS OF SYSTEM
+    #   SYSTEM MODEL
     # =====================================================================
-
-    # Filter object
-    _filter_washout = WashoutFilter(    Wht=WASHOUT_HPF_WHT_COEFFICIENT, Wrtzt=WASHOUT_HPF_WRTZT_COEFFICIENT, \
-                                        W11=WASHOUT_HPF_W11_COEFFICIENT, W12=WASHOUT_LPF_W12_COEFFICIENT, fs=SAMPLE_FREQ )
-
-    # Vestibular systems
-    _vest_sys_test = VestibularSystem()
-    _vest_sys_wash = VestibularSystem()
-
-    # Driver frame
-    _df_test = DriverFrame( DRIVER_FRAME_VECTOR, 1/SAMPLE_FREQ)
-    _df_wash = DriverFrame( DRIVER_FRAME_VECTOR, 1/SAMPLE_FREQ)
-
+    model = SystemModel(Wht=WASHOUT_HPF_WHT_COEFFICIENT, Wrtzt=WASHOUT_HPF_WRTZT_COEFFICIENT, \
+                        W11=WASHOUT_HPF_W11_COEFFICIENT, W12=WASHOUT_LPF_W12_COEFFICIENT, fs=SAMPLE_FREQ)
 
     # =====================================================================
     # SIGNALS OF SYSTEM
@@ -575,29 +665,12 @@ if __name__ == "__main__":
             #   SIMULATE MODEL
             # =====================================================================
 
-            ### TEST CHANNEL - REAL SENSATION
+            # Update model
+            _a_sens_err, _w_sens_err = model.update( _a_in, _beta_in)
 
-            # Conver to drivers ref frame - REAL SENSATION (reference)
-            _a_df_test, _w_df_test = _df_test.transform( _a_in, _beta_in )
-
-            # Vestibular system - REAL SENSATION (reference)
-            _a_sens_test, _w_sens_test = _vest_sys_test.update( _a_df_test, _w_df_test )
-
-
-
-            ### STEWARD CHANNEL - SIMULATED SENSATION
-
-            # Washout filter
-            _a_wash, _w_wash = _filter_washout.update( _a_in, _beta_in )
-
-            # Convert to driver head
-            _a_df_wash, _w_df_wash = _df_wash.transform( _a_wash, _w_wash )
-
-            # Vestibular system - WASHOUT SENSATION
-            _a_wash_sens, _w_wash_sens = _vest_sys_wash.update( _a_df_wash, _w_df_wash )
-
-            # Calculate error in real and washout sensation
-            _a_sens_err, _w_sens_err = system_model_calc_sens_error(  _a_sens_test, _w_sens_test, _a_wash_sens, _w_wash_sens )
+            # Get model intermediate signals
+            _a_sens_test, _w_sens_test = model.system_model_get_reference_sensation()
+            _a_wash_sens, _w_wash_sens = model.system_model_get_actual_sensation()
 
 
             # TODO: calculate positions & rotations
