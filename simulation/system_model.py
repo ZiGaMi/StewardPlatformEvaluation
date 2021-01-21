@@ -67,7 +67,7 @@ INPUT_SIGNAL_ROUTE = INPUT_SIGNAL_ROUTE_TO_AY
 ## TRANSLATION CHANNEL SETTINGS
 
 # HPF Wht 2nd order filter
-WASHOUT_HPF_WHT_FC_X  = 1.0
+WASHOUT_HPF_WHT_FC_X  = 10.0
 WASHOUT_HPF_WHT_Z_X   = .7071
 WASHOUT_HPF_WHT_FC_Y  = 1.0
 WASHOUT_HPF_WHT_Z_Y   = .7071
@@ -80,8 +80,8 @@ WASHOUT_HPF_WHT_COEFFICIENT = [[ WASHOUT_HPF_WHT_FC_X, WASHOUT_HPF_WHT_Z_X ],
 
 
 # HPF Wrtzt 1st order filter
-WASHOUT_HPF_WRTZT_FC_X  = 1.0
-WASHOUT_HPF_WRTZT_FC_Y  = 1.0
+WASHOUT_HPF_WRTZT_FC_X  = 10.0
+WASHOUT_HPF_WRTZT_FC_Y  = 10.0
 WASHOUT_HPF_WRTZT_FC_Z  = 1.0
 
 WASHOUT_HPF_WRTZT_COEFFICIENT = [ WASHOUT_HPF_WRTZT_FC_X, WASHOUT_HPF_WRTZT_FC_Y, WASHOUT_HPF_WRTZT_FC_Z ]
@@ -90,9 +90,9 @@ WASHOUT_HPF_WRTZT_COEFFICIENT = [ WASHOUT_HPF_WRTZT_FC_X, WASHOUT_HPF_WRTZT_FC_Y
 ## COORDINATION CHANNEL SETTINGS
 
 # LPF W12 2nd order filter
-WASHOUT_LPF_W12_FC_ROLL     = 1.0
+WASHOUT_LPF_W12_FC_ROLL     = 10.0
 WASHOUT_LPF_W12_Z_ROLL      = 1.0
-WASHOUT_LPF_W12_FC_PITCH    = 1.0
+WASHOUT_LPF_W12_FC_PITCH    = 10.0
 WASHOUT_LPF_W12_Z_PITCH     = 1.0
 
 WASHOUT_LPF_W12_COEFFICIENT = [[ WASHOUT_LPF_W12_FC_ROLL, WASHOUT_LPF_W12_Z_ROLL ],
@@ -635,6 +635,13 @@ if __name__ == "__main__":
     _y_d_r = [[0], [0], [0]] * 3
 
 
+    # Error calculations
+    _err_cnt = 0
+    _err_a_sum = [0] * 3
+    _err_w_sum = [0] * 3
+
+    _err_a_rms = [0] * 3
+    _err_w_rms = [0] * 3
 
 
 
@@ -674,7 +681,10 @@ if __name__ == "__main__":
 
 
             # TODO: calculate positions & rotations
-
+            for n in range(3):
+                _err_a_sum[n] += ( _a_sens_err[n] ** 2 )
+                _err_w_sum[n] += ( _w_sens_err[n] ** 2 )
+            _err_cnt += 1
 
             
             # =====================================================================
@@ -700,7 +710,15 @@ if __name__ == "__main__":
     
 
     
+    print("RMS Errors:")
+    for n in range(3):
 
+        # Calculate RMS values
+        _err_a_rms[n] = np.sqrt( _err_a_sum[n] / _err_cnt )
+        _err_w_rms[n] = np.sqrt( _err_w_sum[n] / _err_cnt )
+
+        print("e_RMS_a[%s] = %s" %( n, _err_a_rms[n] ))
+        print("e_RMS_w[%s] = %s" %( n, _err_w_rms[n] ))
 
     
     # =============================================================================================
