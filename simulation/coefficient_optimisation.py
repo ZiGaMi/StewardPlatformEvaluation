@@ -200,12 +200,16 @@ def system_model_route_input_signal(inp_sig, sel):
 
     return a, w
 
-#def calculate_fitness(specimen, fs, a_in, beta_in, samp_num):
+
+# Fitness of speciment is defined as inversly proportional
+# model RMS error value. RMS values of accelerations and 
+# angluar velocities are sum togheter at that point 
 def calculate_fitness(specimen, fs, stim, stim_size, route_opt):
     err_a_sum = [0] * 3
     err_a_rms = [0] * 3
     err_w_sum = [0] * 3
     err_w_rms = [0] * 3
+    fitness = 0
 
     # Create system model
     sys_model = SystemModel( Wht=specimen.Wht, Wrtzt=specimen.Wrtzt, W11=specimen.W11, W12=specimen.W12, fs=fs)
@@ -227,9 +231,14 @@ def calculate_fitness(specimen, fs, stim, stim_size, route_opt):
     # Calculate RMS
     for i in range(3):
         err_a_rms[i] = np.sqrt( err_a_sum[i] / stim_size )
-        err_w_rms[i] = np.sqrt( err_w_sum[i] / stim_size ) 
+        err_w_rms[i] = np.sqrt( err_w_sum[i] / stim_size )
 
-    return err_a_rms, err_w_rms
+        fitness += ( err_a_rms[i] + err_w_rms[i] )
+
+    # Higher system model error lower the fitness
+    fitness = 1 / fitness
+
+    return fitness
 
 
 def generate_specimen_gene(low, high):
@@ -289,6 +298,21 @@ def generate_stimuli_signal():
     return _x, len(_x)
 
 
+def calculate_pop_fit_and_error(pop_fit, size):
+    pop_fit_nor = [0] * size
+    fit_sum = 0
+
+    # Sum fit of whole population fitness
+    for n in range(size):
+        fit_sum += pop_fit[n]
+
+    # Normalise fitness
+    # NOTE: Higher fitness means lower error of system model
+    for n in range(size):
+        pop_fit_nor[n] = pop_fit[n] / fit_sum
+
+    return pop_fit_nor, fit_sum
+
 
 
 
@@ -299,7 +323,9 @@ def generate_stimuli_signal():
 
 
 
-POPULATION_SIZE = 4
+POPULATION_SIZE = 5
+GENERATION_SIZE = 10
+
 COEFFICIENT_MIN_VALUE = 0.0
 COEFFICIENT_MAX_VALUE = 2.0
 
@@ -314,116 +340,41 @@ INPUT_SIGNAL_ROUTE_TO_YAW = 5
 
 INPUT_SIGNAL_ROUTE = INPUT_SIGNAL_ROUTE_TO_AX
 
+
+
 # ===============================================================================
 #       MAIN ENTRY
 # ===============================================================================
 if __name__ == "__main__":
 
 
-    #for _ in range(100):
-    #print( get_random_int( -100, 100, 10 ) )
-
-    #print( get_random_float( -1, 1, 10 ) )
-
-    #print( get_mutation_target( 0.5, 10 ) )
-
-    #print( select_two_parants( [0.8,0.1, 0.01, 0.01, 0.01, 0.07], 6 ))
-
-    #print( make_new_childs( [0, 1, 2], [2, 1, 0], 3, 0.1, -10, 10 ) )
-
-    # Specimen
-    #s1 = Specimen(  Wht=WASHOUT_HPF_WHT_COEFFICIENT, Wrtzt=WASHOUT_HPF_WRTZT_COEFFICIENT, \
-    #                W11=WASHOUT_HPF_W11_COEFFICIENT, W12=WASHOUT_LPF_W12_COEFFICIENT )
-
-
     # Generate stimuli signal
     stim_signal, stim_size = generate_stimuli_signal()
 
-    #print(stim_signal)
-    #print(stim_size)
 
-    # Generate population zero
+    # ===============================================================================
+    #   RANDOM GENERATION OF POPULATION ZERO
+    # ===============================================================================
     pop = []
     for n in range(POPULATION_SIZE):
-
-        # Random generated coefficients
         Wht, Wrtzt, W11, W22 = generate_specimen_gene(COEFFICIENT_MIN_VALUE, COEFFICIENT_MAX_VALUE)
         pop.append( Specimen( Wht=Wht, Wrtzt=Wrtzt, W11=W11, W12=W22 ))
 
-        print("Wht of s%s: %s" % (n, pop[n].Wht))
 
-    # Calculate fitness of steciments
+    # ===============================================================================
+    #   CALCULATE POPULATION FITNESS
+    # ===============================================================================
     pop_fitness = []
     for n in range(POPULATION_SIZE):
+        print("Calculation of fitness... Specimen #%s" % n)
         pop_fitness.append( calculate_fitness(pop[n], SAMPLE_FREQ, stim_signal, stim_size, INPUT_SIGNAL_ROUTE ))
 
-        print( pop_fitness[-1] )
-
-
-    #print( calculate_fitness( s1, SAMPLE_FREQ, [1,0,0], [0,0,0], 500 ))
-
-
-    """
-    # Time array
-    _time, _dt = np.linspace( 0.0, TIME_WINDOW, num=SAMPLE_NUM, retstep=True )
-
-    # Filter input/output
-    _x = [ 0 ] * SAMPLE_NUM
-    _x_d = [0]
-
-    # Generate inputs
-    _fg = FunctionGenerator( INPUT_SIGNAL_FREQ, INPUT_SIGNAL_AMPLITUDE, INPUT_SIGNAL_OFFSET, INPUT_SIGNAL_PHASE, INPUT_SIGNAL_SELECTION )
-    
-    # Down sample
-    _downsamp_cnt = 0
-    _downsamp_samp = [0]
-    _d_time = [0]
-    
-    # Generate stimuli signals
-    for n in range(SAMPLE_NUM):
-        #_x[n] = ( _fg.generate( _time[n] ))
-
-        
-        # Some custom signal
-        if _time[n] < 1.0:
-            _x[n] = 0.0
-        elif _time[n] < 2.0:
-            _x[n] = _x[n-1] + 0.5 / IDEAL_SAMPLE_FREQ
-        elif _time[n] < 3.0:
-            _x[n] = 0.5
-        elif _time[n] < 4.0:
-            _x[n] = _x[n-1] - 0.5 / IDEAL_SAMPLE_FREQ
-        elif _time[n] < 10.0:
-            _x[n] = 0
-        else:
-            _x[n] = 0
-    
+    # Normalise population fitness
+    specimen_fitness, pop_fitness = calculate_pop_fit_and_error( pop_fitness, POPULATION_SIZE )
+    print("(Generation #1) Specimen fitness (percent): %s | Overall pop fitness: %.2f " % ( specimen_fitness, pop_fitness ))
 
 
 
-
-
-
- 
-    # Apply filter
-    for n in range(SAMPLE_NUM):
-
-        # Down sample to SAMPLE_FREQ
-        if _downsamp_cnt >= (( 1 / ( _dt * SAMPLE_FREQ )) - 1 ):
-            _downsamp_cnt = 0
-
-            # Utils
-            _downsamp_samp.append(0)
-            _d_time.append( _time[n])
-            _x_d.append( _x[n] )
-
-
-
-
-        else:
-            _downsamp_cnt += 1
-    
-    """
 
 
 
