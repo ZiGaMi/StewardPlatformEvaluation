@@ -458,7 +458,7 @@ class SystemModel:
         self._a_wash_sens, self._w_wash_sens = self._vest_sys_wash.update( _a_df_wash, _w_df_wash )
 
         # Calculate error in real and washout sensation
-        _a_sens_err, _w_sens_err = self.__system_model_calc_sens_error(  _a_sens_test, _w_sens_test, _a_wash_sens, _w_wash_sens )
+        _a_sens_err, _w_sens_err = self.__system_model_calc_sens_error(  self._a_sens_test, self._w_sens_test, self._a_wash_sens, self._w_wash_sens )
 
         return _a_sens_err, _w_sens_err
 

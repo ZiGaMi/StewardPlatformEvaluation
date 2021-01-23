@@ -169,10 +169,57 @@ def make_new_childs(p1, p2, num_of_coef, mutation_rate, low, high):
 
     return c1, c2
     
+# Specimen as one of many in population
+class Specimen:
+
+    def __init__(self, Wht, Wrtzt, W11, W12):
+        self.Wht    = Wht
+        self.Wrtzt  = Wrtzt
+        self.W11    = W11
+        self.W12    = W12
 
 
 
+def calculate_fitness(specimen, fs, a_in, beta_in, samp_num):
+    err_a_sum = [0] * 3
+    err_a_rms = [0] * 3
+    err_w_sum = [0] * 3
+    err_w_rms = [0] * 3
 
+    # Create system model
+    sys_model = SystemModel( Wht=specimen.Wht, Wrtzt=specimen.Wrtzt, W11=specimen.W11, W12=specimen.W12, fs=fs)
+
+    # Simulate model
+    for n in range(samp_num):
+        err_a, err_w = sys_model.update( a_in, beta_in )
+
+        # Square & sum for RMS value
+        for i in range(3):
+            err_a_sum[i] += err_a[i]**2
+            err_w_sum[i] += err_w[i]**2
+
+    # Calculate RMS
+    for i in range(3):
+        err_a_rms[i] = np.sqrt( err_a_sum[i] )
+        err_w_rms[i] = np.sqrt( err_w_sum[i] )
+
+    return err_a_rms, err_w_rms
+
+
+def generate_specimen_gene(low, high):
+
+    Wht = [ [ get_random_float(low, high, 1), get_random_float(low, high, 1) ],
+            [ get_random_float(low, high, 1), get_random_float(low, high, 1) ],
+            [ get_random_float(low, high, 1), get_random_float(low, high, 1) ]]
+
+    Wrtzt = [ get_random_float(low, high, 1), get_random_float(low, high, 1), get_random_float(low, high, 1) ]
+
+    W11 = [ get_random_float(low, high, 1), get_random_float(low, high, 1), get_random_float(low, high, 1) ]
+
+    W12 = [ [ get_random_float(low, high, 1), get_random_float(low, high, 1) ],
+            [ get_random_float(low, high, 1), get_random_float(low, high, 1) ]]
+
+    return Wht, Wrtzt, W11, W12
 
 
 
@@ -182,6 +229,11 @@ def make_new_childs(p1, p2, num_of_coef, mutation_rate, low, high):
 
 
 
+
+POPULATION_SIZE = 4
+COEFFICIENT_MIN_VALUE = -10.0
+COEFFICIENT_MAX_VALUE = 10.0
+
 # ===============================================================================
 #       MAIN ENTRY
 # ===============================================================================
@@ -189,15 +241,33 @@ if __name__ == "__main__":
 
 
     #for _ in range(100):
-    print( get_random_int( -100, 100, 10 ) )
+    #print( get_random_int( -100, 100, 10 ) )
 
-    print( get_random_float( -1, 1, 10 ) )
+    #print( get_random_float( -1, 1, 10 ) )
 
-    print( get_mutation_target( 0.5, 10 ) )
+    #print( get_mutation_target( 0.5, 10 ) )
 
-    print( select_two_parants( [0.8,0.1, 0.01, 0.01, 0.01, 0.07], 6 ))
+    #print( select_two_parants( [0.8,0.1, 0.01, 0.01, 0.01, 0.07], 6 ))
 
     print( make_new_childs( [0, 1, 2], [2, 1, 0], 3, 0.1, -10, 10 ) )
+
+    # Specimen
+    s1 = Specimen(  Wht=WASHOUT_HPF_WHT_COEFFICIENT, Wrtzt=WASHOUT_HPF_WRTZT_COEFFICIENT, \
+                    W11=WASHOUT_HPF_W11_COEFFICIENT, W12=WASHOUT_LPF_W12_COEFFICIENT )
+
+    # Generate population zero
+    pop = []
+    for n in range(POPULATION_SIZE):
+
+        # Random generated coefficients
+        Wht, Wrtzt, W11, W22 = generate_specimen_gene(COEFFICIENT_MIN_VALUE, COEFFICIENT_MAX_VALUE)
+        pop.append( Specimen( Wht=Wht, Wrtzt=Wrtzt, W11=W11, W12=W22 ))
+
+    for s in pop:
+        print(s.Wht)
+
+    #print( calculate_fitness( s1, SAMPLE_FREQ, [1,0,0], [0,0,0], 500 ))
+
 
     """
     # Time array
