@@ -28,13 +28,13 @@ from filters.iir_filter import IIR, calculate_2nd_order_HPF_coeff, calculate_1nd
 #   Sample frequency of real system   
 #
 # Unit: Hz
-SAMPLE_FREQ = 100.0
+SAMPLE_FREQ = 50.0
 
 # Ideal sample frequency
 #   As a reference to sample rate constrained embedded system
 #
 # Unit: Hz
-IDEAL_SAMPLE_FREQ = 10000.0
+IDEAL_SAMPLE_FREQ = 500.0
 
 ## Time window
 #
@@ -356,23 +356,34 @@ if __name__ == "__main__":
     
     # Generate stimuli signals
     for n in range(SAMPLE_NUM):
-        _x[n] = ( _fg.generate( _time[n] ))
+        #_x[n] = ( _fg.generate( _time[n] ))
 
-        """
         # Some custom signal
-        if _time[n] < 1.0:
+        CUSTOM_SIG_MAX = 1
+
+        DELAY_TIME = 0.5
+        RISE_TIME = 1
+        FALL_TIME = 1
+        DURATION_OF_MAX = 1
+
+        if _time[n] < DELAY_TIME:
             _x[n] = 0.0
-        elif _time[n] < 2.0:
-            _x[n] = _x[n-1] + 0.5 / IDEAL_SAMPLE_FREQ
-        elif _time[n] < 3.0:
-            _x[n] = 0.5
-        elif _time[n] < 4.0:
-            _x[n] = _x[n-1] - 0.5 / IDEAL_SAMPLE_FREQ
-        elif _time[n] < 10.0:
+        
+        elif _time[n] < ( RISE_TIME + DELAY_TIME ):
+            _x[n] = _x[n-1] + CUSTOM_SIG_MAX / IDEAL_SAMPLE_FREQ
+        
+        elif _time[n] < ( DURATION_OF_MAX + RISE_TIME + DELAY_TIME ):
+            _x[n] = CUSTOM_SIG_MAX
+        
+        elif _time[n] < ( DURATION_OF_MAX + RISE_TIME + FALL_TIME + DELAY_TIME ):
+            _x[n] = _x[n-1] - CUSTOM_SIG_MAX / IDEAL_SAMPLE_FREQ
+        
+        elif _time[n] < TIME_WINDOW:
             _x[n] = 0
+        
         else:
             _x[n] = 0
-        """
+        
         
  
     # Apply filter

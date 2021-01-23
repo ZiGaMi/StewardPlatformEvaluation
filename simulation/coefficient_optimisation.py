@@ -38,7 +38,7 @@ IDEAL_SAMPLE_FREQ = 500.0
 ## Time window
 #
 # Unit: second
-TIME_WINDOW = 2 #15
+TIME_WINDOW = 6
 
 ## Input signal shape
 INPUT_SIGNAL_FREQ = 0.1
@@ -169,8 +169,6 @@ def make_new_childs(p1, p2, mutation_rate, low, high):
                 c1.W11 = mut_W11
             elif 3 == n:
                 c1.W12 = mut_W12
-            
-            print("Mutation of child1...")
 
     # Mutate
     mutation_target = get_mutation_target( mutation_rate, 4 )
@@ -186,36 +184,6 @@ def make_new_childs(p1, p2, mutation_rate, low, high):
                 c2.W11 = mut_W11
             elif 3 == n:
                 c2.W12 = mut_W12
-            
-            print("Mutation of child2...")
-
-        
-
-    """
-    # Mutate
-    mutation_target = get_mutation_target( mutation_rate, num_of_coef )
-
-    # Mix gene
-    for n in range(num_of_coef):
-        
-        # Crossover only odd gene   
-        if 1 == ( n % 2 ):
-            c = p1[n]
-            p1[n] = p2[n]
-            p2[n] = c
-
-        c1[n] = p1[n]
-        c2[n] = p2[n]
-
-        # Mutate
-        mutation_target = get_mutation_target( mutation_rate, num_of_coef )
-
-        for n in range(num_of_coef):
-            if 1 == mutation_target[n]:
-                c1[n] = get_random_float(low, high, 1)
-                c2[n] = get_random_float(low, high, 1)
-    """
-
 
     return c1, c2
     
@@ -286,16 +254,16 @@ def calculate_fitness(specimen, fs, stim, stim_size, route_opt):
 
 def generate_specimen_gene(low, high):
 
-    Wht = [ [ get_random_float(low, high, 1), get_random_float(low, high, 1) ],
-            [ get_random_float(low, high, 1), get_random_float(low, high, 1) ],
-            [ get_random_float(low, high, 1), get_random_float(low, high, 1) ]]
+    Wht = [ [ get_random_float(low, high, 1), get_random_float(low, 2, 1) ],
+            [ get_random_float(low, high, 1), get_random_float(low, 2, 1) ],
+            [ get_random_float(low, high, 1), get_random_float(low, 2, 1) ]]
 
     Wrtzt = [ get_random_float(low, high, 1), get_random_float(low, high, 1), get_random_float(low, high, 1) ]
 
     W11 = [ get_random_float(low, high, 1), get_random_float(low, high, 1), get_random_float(low, high, 1) ]
 
-    W12 = [ [ get_random_float(low, high, 1), get_random_float(low, high, 1) ],
-            [ get_random_float(low, high, 1), get_random_float(low, high, 1) ]]
+    W12 = [ [ get_random_float(low, high, 1), get_random_float(low, 2, 1) ],
+            [ get_random_float(low, high, 1), get_random_float(low, 2, 1) ]]
 
     return Wht, Wrtzt, W11, W12
 
@@ -327,10 +295,10 @@ def generate_stimuli_signal():
         # Some custom signal
         CUSTOM_SIG_MAX = 1
 
-        DELAY_TIME = 1.0
-        RISE_TIME = 1.0
-        FALL_TIME = 1.0
-        DURATION_OF_MAX = 6
+        DELAY_TIME = 1
+        RISE_TIME = 1
+        FALL_TIME = 1
+        DURATION_OF_MAX = 1
 
         if _time[n] < DELAY_TIME:
             _x[n] = 0.0
@@ -382,10 +350,10 @@ def calculate_pop_fit_and_error(pop_fit, size):
 POPULATION_SIZE = 20
 GENERATION_SIZE = 200
 
-MUTATION_RATE = 0.10
+MUTATION_RATE = 0.02
 
-COEFFICIENT_MIN_VALUE = 0.0
-COEFFICIENT_MAX_VALUE = 2.0
+COEFFICIENT_MIN_VALUE = 0.001
+COEFFICIENT_MAX_VALUE = 5.0
 
 
 ## Input signal route
@@ -419,7 +387,9 @@ if __name__ == "__main__":
         pop.append( Specimen( Wht=Wht, Wrtzt=Wrtzt, W11=W11, W12=W22 ))
 
 
-
+    best_specimen = Specimen(0,0,0,0)
+    best_speciment_fit = 0
+    first_fit = 0
 
     for g in range(GENERATION_SIZE):
 
@@ -437,19 +407,53 @@ if __name__ == "__main__":
         pop_fit_nor, overall_pop_fit = calculate_pop_fit_and_error( pop_fitness, POPULATION_SIZE )
         print("Population fitness distribution (percent): %s \nOverall population fitness: %.2f " % ( pop_fit_nor, overall_pop_fit ))
 
+        if g == 0:
+            first_fit = overall_pop_fit
     
         # ===============================================================================
         #   2. SELECTION & REPRODUCTION
         # ===============================================================================
+        elitsm_s_1 = Specimen(0,0,0,0)
+        elitsm_s_2 = Specimen(0,0,0,0)
+
+        max = 0
+        max_idx = 0
+        max_idx_prev = 0
+        temp_pop = pop_fit_nor
+        for idx, fit in enumerate(temp_pop):
+            if fit > max:
+                max = fit
+                max_idx_prev = max_idx
+                max_idx = idx
+                
+
+
+        elitsm_s_1 = pop[max_idx]
+        elitsm_s_2 = pop[max_idx_prev]
+
+
         for s in range(int(POPULATION_SIZE/2)):
-            
+
             # Select parents
             p1_idx, p2_idx = select_two_parants( pop_fit_nor, POPULATION_SIZE )
 
             # Make love
             pop[p1_idx], pop[p2_idx] = make_new_childs( pop[p1_idx], pop[p2_idx], MUTATION_RATE, COEFFICIENT_MIN_VALUE, COEFFICIENT_MAX_VALUE )
 
+        pop[0] = elitsm_s_1
+        pop[1] = elitsm_s_2
 
+        
+        if pop_fitness[max_idx] >  best_speciment_fit:
+            best_speciment_fit = pop_fitness[max_idx]
+            best_specimen = elitsm_s_1
+
+        print( "Best coefficients:\n Wht = %s \n Wrtzt= %s \n W12 = %s" % ( elitsm_s_1.Wht, elitsm_s_1.Wrtzt, elitsm_s_1.W12 ))
+
+    print("\n *************** END **************");
+    print("*Best fit: %s" % best_speciment_fit)
+    print("*First fit: %s" % first_fit)
+    print( "*Best coefficients:\n Wht = %s \n Wrtzt= %s \n W12 = %s" % ( best_specimen.Wht, best_specimen.Wrtzt, best_specimen.W12 ))
 
 
 
