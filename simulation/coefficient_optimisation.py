@@ -27,18 +27,18 @@ from system_model import SystemModel
 #   Sample frequency of real system   
 #
 # Unit: Hz
-SAMPLE_FREQ = 100.0
+SAMPLE_FREQ = 50.0
 
 # Ideal sample frequency
 #   As a reference to sample rate constrained embedded system
 #
 # Unit: Hz
-IDEAL_SAMPLE_FREQ = 1000.0
+IDEAL_SAMPLE_FREQ = 500.0
 
 ## Time window
 #
 # Unit: second
-TIME_WINDOW = 5
+TIME_WINDOW = 2 #15
 
 ## Input signal shape
 INPUT_SIGNAL_FREQ = 0.1
@@ -120,6 +120,16 @@ def get_mutation_target(mutation_rate, size):
     return np.random.choice([0, 1], p=[1.0 - mutation_rate, mutation_rate], size=size)
 
 
+# Specimen as one of many in population
+class Specimen:
+
+    def __init__(self, Wht, Wrtzt, W11, W12):
+        self.Wht    = Wht
+        self.Wrtzt  = Wrtzt
+        self.W11    = W11
+        self.W12    = W12
+
+
 # Higher fitness parent has higher propability of selection
 # One parent thus can be selected multiple times
 # pop_fitness in range from 0-1
@@ -139,11 +149,49 @@ def select_two_parants(pop_fitness, size):
     return p1_idx, p2_idx
 
 
-def make_new_childs(p1, p2, num_of_coef, mutation_rate, low, high):
+def make_new_childs(p1, p2, mutation_rate, low, high):
 
-    c1 = [0] * num_of_coef
-    c2 = [0] * num_of_coef
+    # Crossover
+    c1 = Specimen( p2.Wht, p1.Wrtzt, p2.W11, p1.W12 )
+    c2 = Specimen( p1.Wht, p2.Wrtzt, p1.W11, p2.W12 )
 
+    # Mutate
+    mutation_target = get_mutation_target( mutation_rate, 4 )
+    mut_Wht, mut_Wrtzt, mut_W11, mut_W12 = generate_specimen_gene(low, high)
+
+    for n in range(4):
+        if 1 == mutation_target[n]:
+            if 0 == n:  
+                c1.Wht = mut_Wht
+            elif 1 == n:
+                c1.Wrtzt = mut_Wrtzt
+            elif 2 == n:
+                c1.W11 = mut_W11
+            elif 3 == n:
+                c1.W12 = mut_W12
+            
+            print("Mutation of child1...")
+
+    # Mutate
+    mutation_target = get_mutation_target( mutation_rate, 4 )
+    mut_Wht, mut_Wrtzt, mut_W11, mut_W22 = generate_specimen_gene(low, high)
+
+    for n in range(4):
+        if 1 == mutation_target[n]:
+            if 0 == n:  
+                c2.Wht = mut_Wht
+            elif 1 == n:
+                c2.Wrtzt = mut_Wrtzt
+            elif 2 == n:
+                c2.W11 = mut_W11
+            elif 3 == n:
+                c2.W12 = mut_W12
+            
+            print("Mutation of child2...")
+
+        
+
+    """
     # Mutate
     mutation_target = get_mutation_target( mutation_rate, num_of_coef )
 
@@ -166,17 +214,12 @@ def make_new_childs(p1, p2, num_of_coef, mutation_rate, low, high):
             if 1 == mutation_target[n]:
                 c1[n] = get_random_float(low, high, 1)
                 c2[n] = get_random_float(low, high, 1)
+    """
+
 
     return c1, c2
     
-# Specimen as one of many in population
-class Specimen:
 
-    def __init__(self, Wht, Wrtzt, W11, W12):
-        self.Wht    = Wht
-        self.Wrtzt  = Wrtzt
-        self.W11    = W11
-        self.W12    = W12
 
 
 def system_model_route_input_signal(inp_sig, sel):
@@ -258,6 +301,7 @@ def generate_specimen_gene(low, high):
 
 
 
+
 def generate_stimuli_signal():
 
     # Time array
@@ -281,16 +325,28 @@ def generate_stimuli_signal():
 
         
         # Some custom signal
-        if _time[n] < 1.0:
+        CUSTOM_SIG_MAX = 1
+
+        DELAY_TIME = 1.0
+        RISE_TIME = 1.0
+        FALL_TIME = 1.0
+        DURATION_OF_MAX = 6
+
+        if _time[n] < DELAY_TIME:
             _x[n] = 0.0
-        elif _time[n] < 2.0:
-            _x[n] = _x[n-1] + 0.5 / IDEAL_SAMPLE_FREQ
-        elif _time[n] < 3.0:
-            _x[n] = 0.5
-        elif _time[n] < 4.0:
-            _x[n] = _x[n-1] - 0.5 / IDEAL_SAMPLE_FREQ
-        elif _time[n] < 10.0:
+        
+        elif _time[n] < ( RISE_TIME + DELAY_TIME ):
+            _x[n] = _x[n-1] + CUSTOM_SIG_MAX / IDEAL_SAMPLE_FREQ
+        
+        elif _time[n] < ( DURATION_OF_MAX + RISE_TIME + DELAY_TIME ):
+            _x[n] = CUSTOM_SIG_MAX
+        
+        elif _time[n] < ( DURATION_OF_MAX + RISE_TIME + FALL_TIME + DELAY_TIME ):
+            _x[n] = _x[n-1] - CUSTOM_SIG_MAX / IDEAL_SAMPLE_FREQ
+        
+        elif _time[n] < TIME_WINDOW:
             _x[n] = 0
+        
         else:
             _x[n] = 0
         
@@ -322,9 +378,11 @@ def calculate_pop_fit_and_error(pop_fit, size):
 
 
 
+# Population size must be even
+POPULATION_SIZE = 20
+GENERATION_SIZE = 200
 
-POPULATION_SIZE = 5
-GENERATION_SIZE = 10
+MUTATION_RATE = 0.10
 
 COEFFICIENT_MIN_VALUE = 0.0
 COEFFICIENT_MAX_VALUE = 2.0
@@ -361,17 +419,35 @@ if __name__ == "__main__":
         pop.append( Specimen( Wht=Wht, Wrtzt=Wrtzt, W11=W11, W12=W22 ))
 
 
-    # ===============================================================================
-    #   CALCULATE POPULATION FITNESS
-    # ===============================================================================
-    pop_fitness = []
-    for n in range(POPULATION_SIZE):
-        print("Calculation of fitness... Specimen #%s" % n)
-        pop_fitness.append( calculate_fitness(pop[n], SAMPLE_FREQ, stim_signal, stim_size, INPUT_SIGNAL_ROUTE ))
 
-    # Normalise population fitness
-    specimen_fitness, pop_fitness = calculate_pop_fit_and_error( pop_fitness, POPULATION_SIZE )
-    print("(Generation #1) Specimen fitness (percent): %s | Overall pop fitness: %.2f " % ( specimen_fitness, pop_fitness ))
+
+    for g in range(GENERATION_SIZE):
+
+        print("******* GENERATION #%s *******" % g)
+
+        # ===============================================================================
+        #   1. CALCULATE POPULATION FITNESS
+        # ===============================================================================
+        pop_fitness = []
+        for n in range(POPULATION_SIZE):
+            #print("Specimen #%s fitness calculation..." % n)
+            pop_fitness.append( calculate_fitness(pop[n], SAMPLE_FREQ, stim_signal, stim_size, INPUT_SIGNAL_ROUTE ))
+
+        # Normalise population fitness
+        pop_fit_nor, overall_pop_fit = calculate_pop_fit_and_error( pop_fitness, POPULATION_SIZE )
+        print("Population fitness distribution (percent): %s \nOverall population fitness: %.2f " % ( pop_fit_nor, overall_pop_fit ))
+
+    
+        # ===============================================================================
+        #   2. SELECTION & REPRODUCTION
+        # ===============================================================================
+        for s in range(int(POPULATION_SIZE/2)):
+            
+            # Select parents
+            p1_idx, p2_idx = select_two_parants( pop_fit_nor, POPULATION_SIZE )
+
+            # Make love
+            pop[p1_idx], pop[p2_idx] = make_new_childs( pop[p1_idx], pop[p2_idx], MUTATION_RATE, COEFFICIENT_MIN_VALUE, COEFFICIENT_MAX_VALUE )
 
 
 

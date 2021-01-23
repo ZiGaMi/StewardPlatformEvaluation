@@ -27,13 +27,13 @@ from washout_filter import WashoutFilter
 #   Sample frequency of real system   
 #
 # Unit: Hz
-SAMPLE_FREQ = 100.0
+SAMPLE_FREQ = 50.0
 
 # Ideal sample frequency
 #   As a reference to sample rate constrained embedded system
 #
 # Unit: Hz
-IDEAL_SAMPLE_FREQ = 10000.0
+IDEAL_SAMPLE_FREQ = 500.0
 
 ## Time window
 #
