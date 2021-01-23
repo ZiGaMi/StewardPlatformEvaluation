@@ -33,12 +33,12 @@ SAMPLE_FREQ = 100.0
 #   As a reference to sample rate constrained embedded system
 #
 # Unit: Hz
-IDEAL_SAMPLE_FREQ = 10000.0
+IDEAL_SAMPLE_FREQ = 1000.0
 
 ## Time window
 #
 # Unit: second
-TIME_WINDOW = 10
+TIME_WINDOW = 5
 
 ## Input signal shape
 INPUT_SIGNAL_FREQ = 0.1
@@ -179,8 +179,29 @@ class Specimen:
         self.W12    = W12
 
 
+def system_model_route_input_signal(inp_sig, sel):
+    a = [0] * 3
+    w = [0] * 3
 
-def calculate_fitness(specimen, fs, a_in, beta_in, samp_num):
+    if sel == INPUT_SIGNAL_ROUTE_TO_AX:
+        a[0] = inp_sig
+    elif sel == INPUT_SIGNAL_ROUTE_TO_AY:
+        a[1] = inp_sig
+    elif sel == INPUT_SIGNAL_ROUTE_TO_AZ:
+        a[2] = inp_sig
+    elif sel == INPUT_SIGNAL_ROUTE_TO_WX:
+        w[0] = inp_sig
+    elif sel == INPUT_SIGNAL_ROUTE_TO_WY:
+        w[1] = inp_sig
+    elif sel == INPUT_SIGNAL_ROUTE_TO_WZ:
+        w[2] = inp_sig
+    else:
+        raise AssertionError
+
+    return a, w
+
+#def calculate_fitness(specimen, fs, a_in, beta_in, samp_num):
+def calculate_fitness(specimen, fs, stim, stim_size, route_opt):
     err_a_sum = [0] * 3
     err_a_rms = [0] * 3
     err_w_sum = [0] * 3
@@ -189,8 +210,13 @@ def calculate_fitness(specimen, fs, a_in, beta_in, samp_num):
     # Create system model
     sys_model = SystemModel( Wht=specimen.Wht, Wrtzt=specimen.Wrtzt, W11=specimen.W11, W12=specimen.W12, fs=fs)
 
-    # Simulate model
-    for n in range(samp_num):
+    # Simulate stimulated system model
+    for n in range(stim_size):
+
+        # Route stimuli
+        a_in, beta_in = system_model_route_input_signal( stim[n], route_opt )
+
+        # Simulate model
         err_a, err_w = sys_model.update( a_in, beta_in )
 
         # Square & sum for RMS value
@@ -200,8 +226,8 @@ def calculate_fitness(specimen, fs, a_in, beta_in, samp_num):
 
     # Calculate RMS
     for i in range(3):
-        err_a_rms[i] = np.sqrt( err_a_sum[i] )
-        err_w_rms[i] = np.sqrt( err_w_sum[i] )
+        err_a_rms[i] = np.sqrt( err_a_sum[i] / stim_size )
+        err_w_rms[i] = np.sqrt( err_w_sum[i] / stim_size ) 
 
     return err_a_rms, err_w_rms
 
@@ -223,6 +249,48 @@ def generate_specimen_gene(low, high):
 
 
 
+def generate_stimuli_signal():
+
+    # Time array
+    _time, _dt = np.linspace( 0.0, TIME_WINDOW, num=SAMPLE_NUM, retstep=True )
+
+    # Filter input/output
+    _x = [ 0 ] * SAMPLE_NUM
+    _x_d = [0]
+
+    # Generate inputs
+    _fg = FunctionGenerator( INPUT_SIGNAL_FREQ, INPUT_SIGNAL_AMPLITUDE, INPUT_SIGNAL_OFFSET, INPUT_SIGNAL_PHASE, INPUT_SIGNAL_SELECTION )
+    
+    # Down sample
+    _downsamp_cnt = 0
+    _downsamp_samp = [0]
+    _d_time = [0]
+    
+    # Generate stimuli signals
+    for n in range(SAMPLE_NUM):
+        #_x[n] = ( _fg.generate( _time[n] ))
+
+        
+        # Some custom signal
+        if _time[n] < 1.0:
+            _x[n] = 0.0
+        elif _time[n] < 2.0:
+            _x[n] = _x[n-1] + 0.5 / IDEAL_SAMPLE_FREQ
+        elif _time[n] < 3.0:
+            _x[n] = 0.5
+        elif _time[n] < 4.0:
+            _x[n] = _x[n-1] - 0.5 / IDEAL_SAMPLE_FREQ
+        elif _time[n] < 10.0:
+            _x[n] = 0
+        else:
+            _x[n] = 0
+
+    return _x, len(_x)
+
+
+
+
+
 # ===============================================================================
 #       CLASSES
 # ===============================================================================    
@@ -231,8 +299,19 @@ def generate_specimen_gene(low, high):
 
 
 POPULATION_SIZE = 4
-COEFFICIENT_MIN_VALUE = -10.0
-COEFFICIENT_MAX_VALUE = 10.0
+COEFFICIENT_MIN_VALUE = -5.0
+COEFFICIENT_MAX_VALUE = 5.0
+
+
+## Input signal route
+INPUT_SIGNAL_ROUTE_TO_AX = 0
+INPUT_SIGNAL_ROUTE_TO_AY = 1
+INPUT_SIGNAL_ROUTE_TO_AZ = 2
+INPUT_SIGNAL_ROUTE_TO_ROLL = 3
+INPUT_SIGNAL_ROUTE_TO_PITCH = 4
+INPUT_SIGNAL_ROUTE_TO_YAW = 5
+
+INPUT_SIGNAL_ROUTE = INPUT_SIGNAL_ROUTE_TO_AX
 
 # ===============================================================================
 #       MAIN ENTRY
@@ -249,11 +328,18 @@ if __name__ == "__main__":
 
     #print( select_two_parants( [0.8,0.1, 0.01, 0.01, 0.01, 0.07], 6 ))
 
-    print( make_new_childs( [0, 1, 2], [2, 1, 0], 3, 0.1, -10, 10 ) )
+    #print( make_new_childs( [0, 1, 2], [2, 1, 0], 3, 0.1, -10, 10 ) )
 
     # Specimen
-    s1 = Specimen(  Wht=WASHOUT_HPF_WHT_COEFFICIENT, Wrtzt=WASHOUT_HPF_WRTZT_COEFFICIENT, \
-                    W11=WASHOUT_HPF_W11_COEFFICIENT, W12=WASHOUT_LPF_W12_COEFFICIENT )
+    #s1 = Specimen(  Wht=WASHOUT_HPF_WHT_COEFFICIENT, Wrtzt=WASHOUT_HPF_WRTZT_COEFFICIENT, \
+    #                W11=WASHOUT_HPF_W11_COEFFICIENT, W12=WASHOUT_LPF_W12_COEFFICIENT )
+
+
+    # Generate stimuli signal
+    stim_signal, stim_size = generate_stimuli_signal()
+
+    #print(stim_signal)
+    #print(stim_size)
 
     # Generate population zero
     pop = []
@@ -263,8 +349,15 @@ if __name__ == "__main__":
         Wht, Wrtzt, W11, W22 = generate_specimen_gene(COEFFICIENT_MIN_VALUE, COEFFICIENT_MAX_VALUE)
         pop.append( Specimen( Wht=Wht, Wrtzt=Wrtzt, W11=W11, W12=W22 ))
 
-    for s in pop:
-        print(s.Wht)
+        print("Wht of s%s: %s" % (n, pop[n].Wht))
+
+    # Calculate fitness of steciments
+    pop_fitness = []
+    for n in range(POPULATION_SIZE):
+        pop_fitness.append( calculate_fitness(pop[n], SAMPLE_FREQ, stim_signal, stim_size, INPUT_SIGNAL_ROUTE ))
+
+        print( pop_fitness[-1] )
+
 
     #print( calculate_fitness( s1, SAMPLE_FREQ, [1,0,0], [0,0,0], 500 ))
 

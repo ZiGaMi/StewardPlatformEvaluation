@@ -427,7 +427,6 @@ class SystemModel:
         self._df_test = DriverFrame( DRIVER_FRAME_VECTOR, 1/fs)
         self._df_wash = DriverFrame( DRIVER_FRAME_VECTOR, 1/fs)
 
-
     # ===============================================================================
     # @brief: Update system module
     #
