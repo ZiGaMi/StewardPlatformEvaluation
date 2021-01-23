@@ -58,8 +58,8 @@ SAMPLE_NUM = int(( IDEAL_SAMPLE_FREQ * TIME_WINDOW ) + 1.0 )
 ## TRANSLATION CHANNEL SETTINGS
 
 # HPF Wht 2nd order filter
-WASHOUT_HPF_WHT_FC_X  = 1.0
-WASHOUT_HPF_WHT_Z_X   = .7071
+WASHOUT_HPF_WHT_FC_X  = 10.0
+WASHOUT_HPF_WHT_Z_X   = 0.5
 WASHOUT_HPF_WHT_FC_Y  = 1.0
 WASHOUT_HPF_WHT_Z_Y   = .7071
 WASHOUT_HPF_WHT_FC_Z  = 1.0
@@ -71,7 +71,7 @@ WASHOUT_HPF_WHT_COEFFICIENT = [[ WASHOUT_HPF_WHT_FC_X, WASHOUT_HPF_WHT_Z_X ],
 
 
 # HPF Wrtzt 1st order filter
-WASHOUT_HPF_WRTZT_FC_X  = 1.0
+WASHOUT_HPF_WRTZT_FC_X  = .010
 WASHOUT_HPF_WRTZT_FC_Y  = 1.0
 WASHOUT_HPF_WRTZT_FC_Z  = 1.0
 
@@ -81,10 +81,10 @@ WASHOUT_HPF_WRTZT_COEFFICIENT = [ WASHOUT_HPF_WRTZT_FC_X, WASHOUT_HPF_WRTZT_FC_Y
 ## COORDINATION CHANNEL SETTINGS
 
 # LPF W12 2nd order filter
-WASHOUT_LPF_W12_FC_ROLL     = 1.0
-WASHOUT_LPF_W12_Z_ROLL      = 1.0
-WASHOUT_LPF_W12_FC_PITCH    = 1.0
-WASHOUT_LPF_W12_Z_PITCH     = 1.0
+WASHOUT_LPF_W12_FC_ROLL     = .01
+WASHOUT_LPF_W12_Z_ROLL      = 3.0
+WASHOUT_LPF_W12_FC_PITCH    = 0.01
+WASHOUT_LPF_W12_Z_PITCH     = 3.0
 
 WASHOUT_LPF_W12_COEFFICIENT = [[ WASHOUT_LPF_W12_FC_ROLL, WASHOUT_LPF_W12_Z_ROLL ],
                                [ WASHOUT_LPF_W12_FC_PITCH, WASHOUT_LPF_W12_Z_PITCH ]]
@@ -356,9 +356,9 @@ if __name__ == "__main__":
     
     # Generate stimuli signals
     for n in range(SAMPLE_NUM):
-        #_x[n] = ( _fg.generate( _time[n] ))
+        _x[n] = ( _fg.generate( _time[n] ))
 
-        
+        """
         # Some custom signal
         if _time[n] < 1.0:
             _x[n] = 0.0
@@ -372,7 +372,7 @@ if __name__ == "__main__":
             _x[n] = 0
         else:
             _x[n] = 0
-        
+        """
         
  
     # Apply filter
@@ -387,7 +387,7 @@ if __name__ == "__main__":
             _d_time.append( _time[n])
             _x_d.append( _x[n] )
 
-            p, r = _filter_washout.update( [ _x[n]/10, _x[n], 0 ], [ 0, 0, 0 ] )
+            p, r = _filter_washout.update( [ _x[n], 0, 0 ], [ 0, 0, 0 ] )
             _y_d_p[0].append( p[0] )
             _y_d_p[1].append( p[1] )
             _y_d_p[2].append( p[2] )

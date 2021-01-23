@@ -57,7 +57,7 @@ INPUT_SIGNAL_ROUTE_TO_ROLL = 3
 INPUT_SIGNAL_ROUTE_TO_PITCH = 4
 INPUT_SIGNAL_ROUTE_TO_YAW = 5
 
-INPUT_SIGNAL_ROUTE = INPUT_SIGNAL_ROUTE_TO_AY
+INPUT_SIGNAL_ROUTE = INPUT_SIGNAL_ROUTE_TO_AX
 
 # =====================================================
 # WASHOUT FILTER COEFFICINETS
@@ -68,7 +68,7 @@ INPUT_SIGNAL_ROUTE = INPUT_SIGNAL_ROUTE_TO_AY
 
 # HPF Wht 2nd order filter
 WASHOUT_HPF_WHT_FC_X  = 10.0
-WASHOUT_HPF_WHT_Z_X   = .7071
+WASHOUT_HPF_WHT_Z_X   = 2.0
 WASHOUT_HPF_WHT_FC_Y  = 1.0
 WASHOUT_HPF_WHT_Z_Y   = .7071
 WASHOUT_HPF_WHT_FC_Z  = 1.0
@@ -90,8 +90,8 @@ WASHOUT_HPF_WRTZT_COEFFICIENT = [ WASHOUT_HPF_WRTZT_FC_X, WASHOUT_HPF_WRTZT_FC_Y
 ## COORDINATION CHANNEL SETTINGS
 
 # LPF W12 2nd order filter
-WASHOUT_LPF_W12_FC_ROLL     = 10.0
-WASHOUT_LPF_W12_Z_ROLL      = 1.0
+WASHOUT_LPF_W12_FC_ROLL     = 1.1
+WASHOUT_LPF_W12_Z_ROLL      = .1
 WASHOUT_LPF_W12_FC_PITCH    = 10.0
 WASHOUT_LPF_W12_Z_PITCH     = 1.0
 
@@ -115,10 +115,7 @@ WASHOUT_HPF_W11_COEFFICIENT = [ WASHOUT_HPF_W11_FC_ROLL, WASHOUT_HPF_W11_FC_PITC
 # DRIVERS HEAD LOCATION BASED ON PLATFOR
 # =====================================================
 
-# Vector from platform origin to drivers head
-# [x, y, z]
-# Note: Z axis is pointing downwards
-DRIVER_FRAME_VECTOR = [0.0, 0.0, -1.3]
+
 
 
 
@@ -182,15 +179,19 @@ def system_model_route_input_signal(inp_sig, sel):
 ## Converstion to driver reference frame
 class DriverFrame:
 
+    # Vector from platform origin to drivers head
+    # [x, y, z]
+    # Note: Z axis is pointing downwards
+    DRIVER_FRAME_VECTOR = [0.0, 0.0, -1.3]
+
     # ===============================================================================
     # @brief: Initialization of conversion to driver frame
     #
-    # @param[in]:    r_ae   - Position of driver head in respect to platform
     # @param[in]:    dt     - Period time 
     # @return:       void
     # ===============================================================================
-    def __init__(self, r_ea, dt):
-        self.r_ea = r_ea
+    def __init__(self, dt):
+        self.r_ea = self.DRIVER_FRAME_VECTOR
         self.dt = dt
 
         # Previous values of rotations & angular rates 
@@ -416,16 +417,16 @@ class SystemModel:
     def __init__(self, Wht, Wrtzt, W11, W12, fs):
 
         # Filter object
-        self._filter_washout = WashoutFilter(    Wht=WASHOUT_HPF_WHT_COEFFICIENT, Wrtzt=WASHOUT_HPF_WRTZT_COEFFICIENT, \
-                                                 W11=WASHOUT_HPF_W11_COEFFICIENT, W12=WASHOUT_LPF_W12_COEFFICIENT, fs=fs )
+        self._filter_washout = WashoutFilter(    Wht=Wht, Wrtzt=Wrtzt, \
+                                                 W11=W11, W12=W12, fs=fs )
 
         # Vestibular systems
         self._vest_sys_test = VestibularSystem()
         self._vest_sys_wash = VestibularSystem()
 
         # Driver frame
-        self._df_test = DriverFrame( DRIVER_FRAME_VECTOR, 1/fs)
-        self._df_wash = DriverFrame( DRIVER_FRAME_VECTOR, 1/fs)
+        self._df_test = DriverFrame( 1/fs)
+        self._df_wash = DriverFrame( 1/fs)
 
     # ===============================================================================
     # @brief: Update system module

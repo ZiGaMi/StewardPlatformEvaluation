@@ -284,6 +284,7 @@ def generate_stimuli_signal():
             _x[n] = 0
         else:
             _x[n] = 0
+        
 
     return _x, len(_x)
 
@@ -299,8 +300,8 @@ def generate_stimuli_signal():
 
 
 POPULATION_SIZE = 4
-COEFFICIENT_MIN_VALUE = -5.0
-COEFFICIENT_MAX_VALUE = 5.0
+COEFFICIENT_MIN_VALUE = 0.0
+COEFFICIENT_MAX_VALUE = 2.0
 
 
 ## Input signal route
