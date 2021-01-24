@@ -15,6 +15,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import time
+import random
 
 from filters.filter_utils import FunctionGenerator
 from system_model import SystemModel
@@ -40,7 +41,7 @@ IDEAL_SAMPLE_FREQ = 500.0
 ## Time window
 #
 # Unit: second
-TIME_WINDOW = 2
+TIME_WINDOW = 1
 
 ## Input signal shape
 INPUT_SIGNAL_FREQ = 0.1
@@ -202,6 +203,8 @@ def get_random_int(low, high, size):
         return np.random.randint(low, high, size)[0]
     else:
         return np.random.randint(low, high, size)
+
+    
 
 # ===============================================================================
 # @brief: Generate random float array in range (low, high) 
@@ -387,22 +390,131 @@ def calculate_fitness(specimen, fs, stim, stim_size, route_opt):
     return fitness
 
 
+# ===============================================================================
+# @brief:   Calcualte population fitness and overall rank
+#
+# @param[in]:    pop                - Population 
+# @param[in]:    pop_size           - Size of population
+# @param[in]:    fs                 - Sample frequency for system model
+# @param[in]:    stim_signal        - Signal to stimuli system model
+# @param[in]:    stim_size          - Size of stimuli signal
+# @param[in]:    stim_route         - Stimuli route options
+# @return:       _pop_fitness       - Population fintess, contains individual fitness
+# @return:       _pop_fitness_sum   - Population fintess sum (rank)
+# ===============================================================================
+def calculate_population_fitness(pop, pop_size, fs, stim_signal, stim_size, stim_route):
+    _pop_fitness = []
+    _pop_fitness_sum = 0
+
+    for n in range(pop_size):
+        _pop_fitness.append( calculate_fitness(pop[n], fs, stim_signal, stim_size, stim_route ))
+        _pop_fitness_sum += _pop_fitness[-1]
+
+    return _pop_fitness, _pop_fitness_sum
 
 
 
 
+# Based on turnamet selection
+def select_parents(pop, pop_fitness):
 
+    # Select four specimen for mating
+    s1, s2, s3, s4 = random.sample(range(0, len(pop)), 4)
 
+    # Make a turnament
+    if pop_fitness[ s1 ] > pop_fitness[ s2 ]:
+        p1 = pop[s1]
+    else:
+        p1 = pop[s2]
 
+    if pop_fitness[ s3 ] > pop_fitness[ s4 ]:
+        p2 = pop[s3]
+    else:
+        p2 = pop[s4]
 
+    return p1, p2
 
+def make_love(p1, p2):
 
+    # Inherit from parent 1
+    child = Specimen(Wht=p1.Wht, Wrtzt=p1.Wrtzt, W11=p1.W11, W12=p1.W12)
 
+    # Cross over gene from parent 2
+    child.Wht.x.fc  = p2.Wht.x.fc
+    child.Wht.y.z   = p2.Wht.y.z
+    child.Wht.z.fc  = p2.Wht.z.fc 
 
+    child.Wrtzt.x.fc = p2.Wrtzt.x.fc
+    child.Wrtzt.z.fc = p2.Wrtzt.z.fc
+
+    child.W12.roll.fc = p2.W12.roll.fc
+    child.W12.pitch.z = p2.W12.pitch.z
+
+    child.W11.roll.fc = p2.W11.roll.fc
+    child.W11.yaw.fc = p2.W11.yaw.fc
+
+    return child
 
 
 def get_mutation_target(mutation_rate, size):
     return np.random.choice([0, 1], p=[1.0 - mutation_rate, mutation_rate], size=size)
+    
+
+def mutate_child(child, mutation_rate):
+    child_mut = child
+
+    if 1 == np.random.choice([0, 1], p=[1.0 - mutation_rate, mutation_rate], size=1):
+        child_mut.Wht.x.fc = get_random_float(0.01, 5, 1)
+
+    if 1 == np.random.choice([0, 1], p=[1.0 - mutation_rate, mutation_rate], size=1):
+        child_mut.W12.pitch.z = get_random_float(0.1, 2, 1)
+
+    return child_mut
+
+
+def make_new_generation(pop, pop_fitness, mutation_rate):
+    new_pop = []
+    working_pop = pop
+
+    # Generate new POPULATION SIZE number of childs
+    for s in range( len(pop) ):
+
+        # Select parents & remove then from next selection cycle
+        p1, p2 = select_parents(working_pop, pop_fitness)
+        
+        # Make a child
+        child = make_love(p1, p2)
+
+        # Mutate child
+        child = mutate_child(child, mutation_rate)
+
+        # Add child to new generation of population
+        new_pop.append(child)
+
+
+
+
+        # Remove selected parants from mating pool
+        #working_pop.remove(p1)
+        #working_pop.remove(p2)
+
+
+    # Apply elitsm
+    # TBD...
+
+    return new_pop
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 # Higher fitness parent has higher propability of selection
@@ -608,13 +720,13 @@ WASHOUT_FILTER_Z_MAX_VALUE  = 2.0
 
 # Population size
 # NOTE: Prefered to be even
-POPULATION_SIZE = 10
+POPULATION_SIZE = 20
 
 # Number of generations
 GENERATION_SIZE = 10
 
 # Mutation rate
-MUTATION_RATE = 0.05
+MUTATION_RATE = 0.10
 
 
 # ==================================================
@@ -638,7 +750,6 @@ INPUT_SIGNAL_ROUTE = INPUT_SIGNAL_ROUTE_TO_AX
 #       MAIN ENTRY
 # ===============================================================================
 if __name__ == "__main__":
-
     
     # Clear console
     os.system("cls")
@@ -650,23 +761,22 @@ if __name__ == "__main__":
     # Generate stimuli signal
     stim_signal, stim_size = generate_stimuli_signal()
 
+    # Population
+    pop = []
 
     # ===============================================================================
     #   RANDOM GENERATION OF POPULATION ZERO
     # ===============================================================================
-    pop = []
     for n in range(POPULATION_SIZE):
-        Wht, Wrtzt, W11, W22 = generate_specimen_random_gene(WASHOUT_FILTER_FC_MIN_VALUE, WASHOUT_FILTER_FC_MAX_VALUE,\
-                                                             WASHOUT_FILTER_Z_MIN_VALUE, WASHOUT_FILTER_Z_MAX_VALUE)
+        Wht, Wrtzt, W11, W22 = generate_specimen_random_gene(WASHOUT_FILTER_FC_MIN_VALUE, WASHOUT_FILTER_FC_MAX_VALUE, WASHOUT_FILTER_Z_MIN_VALUE, WASHOUT_FILTER_Z_MAX_VALUE)
         pop.append( Specimen( Wht=Wht, Wrtzt=Wrtzt, W11=W11, W12=W22 ))
 
         
-
     # Variables for statistics
     best_specimen = Specimen(0,0,0,0)
     best_speciment_fit = 0
     first_fit = 0
-    overall_pop_fit_prev = 0
+    pop_fitness_sum_prev = 0
 
     # Start timer
     evo_timer.start()
@@ -674,11 +784,7 @@ if __name__ == "__main__":
 
 
 
-
-
-
-
-
+    # Loop thru generations
     for g in range(GENERATION_SIZE):
 
         print("===============================================================================================")
@@ -688,25 +794,38 @@ if __name__ == "__main__":
         # ===============================================================================
         #   1. CALCULATE POPULATION FITNESS
         # ===============================================================================
-        pop_fitness = []
-        for n in range(POPULATION_SIZE):
-            pop_fitness.append( calculate_fitness(pop[n], SAMPLE_FREQ, stim_signal, stim_size, INPUT_SIGNAL_ROUTE ))
+        pop_fitness, pop_fitness_sum = calculate_population_fitness( pop, POPULATION_SIZE, SAMPLE_FREQ, stim_signal, stim_size, INPUT_SIGNAL_ROUTE )
+       
+
+        # Store first population fitness sum
+        if g == 0:
+            first_pop_fitness_sum = pop_fitness_sum
+
+        #print(pop_fitness)
+        #print(pop_fitness_sum)
+
+        #for n in range(POPULATION_SIZE):
+        #    pop_fitness.append( calculate_fitness(pop[n], SAMPLE_FREQ, stim_signal, stim_size, INPUT_SIGNAL_ROUTE ))
 
         # Normalise population fitness
-        pop_fit_nor, overall_pop_fit = calculate_pop_fit_and_error( pop_fitness, POPULATION_SIZE )
-        print("Population fitness distribution (percent): %s \nOverall population fitness: %.2f " % ( pop_fit_nor, overall_pop_fit ))
+        #pop_fit_nor, overall_pop_fit = calculate_pop_fit_and_error( pop_fitness, POPULATION_SIZE )
+        #print("Population fitness distribution (percent): %s \nOverall population fitness: %.2f " % ( pop_fit_nor, overall_pop_fit ))
 
 
-        
-        if g == 0:
-            first_fit = overall_pop_fit
+
 
 
 
     
         # ===============================================================================
-        #   2. SELECTION & REPRODUCTION
+        #   2. REPRODUCTION
         # ===============================================================================
+
+        # Make a new (BETTER) generation
+        pop = make_new_generation(pop, pop_fitness, MUTATION_RATE)
+
+        
+        """
         elitsm_s_1 = Specimen(0,0,0,0)
         elitsm_s_2 = Specimen(0,0,0,0)
 
@@ -724,6 +843,7 @@ if __name__ == "__main__":
 
         elitsm_s_1 = pop[max_idx]
         elitsm_s_2 = pop[max_idx_prev]
+        """
 
         """
         for s in range(int(POPULATION_SIZE/2)):
@@ -742,10 +862,12 @@ if __name__ == "__main__":
 
 
 
-
+        """
         if pop_fitness[max_idx] >  best_speciment_fit:
             best_speciment_fit = pop_fitness[max_idx]
             best_specimen = elitsm_s_1
+        """
+
 
         # ===============================================================================
         #   Intermediate reports of evolution
@@ -754,15 +876,25 @@ if __name__ == "__main__":
         # Restart timer
         exe_time = gen_timer.restart()
 
-        # Report
-        print("Generation progress (in fits): %.2f\n" % ( overall_pop_fit - overall_pop_fit_prev ))
-        print("Best specimen:\n -Wht = %s \n -Wrtzt= %s \n -W11 = %s\n -W12 = %s\n" % ( elitsm_s_1.Wht, elitsm_s_1.Wrtzt, elitsm_s_1.W11, elitsm_s_1.W12 ))
+        # Report progress
+        if g > 0:
+            print("Generation progress (in fittness): %.2f\n" % ( pop_fitness_sum - pop_fitness_sum_prev ))
+        pop_fitness_sum_prev = pop_fitness_sum
+
+
         print("Execution time: %.0f ms" % (exe_time * 1e3 ))
+        print("Evolution duration: %.2f sec\n" % evo_timer.time() )
+       
+        """       
+        print("Best specimen:")
+        print_specimen_coefficient( elitsm_s_1 )
+
+        print("\nExecution time: %.0f ms" % (exe_time * 1e3 ))
         print("Evolution duration: %.2f sec\n" % evo_timer.time() )
 
         # Store previous overall population fit 
         overall_pop_fit_prev = overall_pop_fit
-
+        """
 
     # Stop evolution timer
     evo_duration = evo_timer.stop()
@@ -771,10 +903,10 @@ if __name__ == "__main__":
     print("===============================================================================================")
     print("     EVOLUTION FINISHED");
     print("===============================================================================================")
-    print("Best speciment fit: %.2f" % best_speciment_fit)
-    print("First population fit: %.2f" % first_fit)
-    print("End population fit: %.2f\n" % overall_pop_fit)
-    print("Best coefficients:\n -Wht = %s \n -Wrtzt= %s \n -W11 = %s\n -W12 = %s\n" % ( best_specimen.Wht, best_specimen.Wrtzt, best_specimen.W11, best_specimen.W12 ))
+    #print("Best speciment fit: \n %s" % print_specimen_coefficient( best_speciment_fit ))
+    print("First population fit: %.2f" % first_pop_fitness_sum)
+    print("End population fit: %.2f\n" % pop_fitness_sum)
+    #print("Best coefficients:\n -Wht = %s \n -Wrtzt= %s \n -W11 = %s\n -W12 = %s\n" % ( best_specimen.Wht, best_specimen.Wrtzt, best_specimen.W11, best_specimen.W12 ))
     print("Evolution total duration: %.2f sec\n" % evo_duration )    
     
 
