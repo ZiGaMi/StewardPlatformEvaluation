@@ -322,7 +322,79 @@ def print_specimen_coefficient(specimen, raw=False):
         print("W12   =[[ %.6f, %.6f ],[%.6f,%.6f]]"             % ( coef[9], coef[10], coef[11], coef[12] ))
         print("W11   =[%.6f,%.6f,%.6f]"                         % ( coef[13], coef[14], coef[15] ))
 
-             
+# ===============================================================================
+# @brief:   Calculate fitness of system module based on sensation error
+#
+#
+# @note:    Fitness of speciment is defined as inversly proportional
+#           model RMS error value. RMS values of accelerations and 
+#           angluar velocities are sum togheter.
+#
+#
+# @param[in]:    specimen   - Speciment of population 
+# @param[in]:    fs         - Sample frequency used in system model
+# @param[in]:    stim       - Stimuli signal
+# @param[in]:    stim_size  - Stimuli signal size in samples
+# @param[in]:    route_opt  - Stimuli signal route to dimestion option
+# @return:       fitness    - Fitness value of specimen
+# ===============================================================================
+def calculate_fitness(specimen, fs, stim, stim_size, route_opt):
+    err_a_sum = [0] * 3
+    err_a_rms = [0] * 3
+    err_w_sum = [0] * 3
+    err_w_rms = [0] * 3
+    fitness = 0
+
+    # Convert filter coefficient to suit SystemModel input
+    WHT= [[ specimen.Wht.x.fc, specimen.Wht.x.z ],
+          [ specimen.Wht.y.fc, specimen.Wht.y.z ],
+          [ specimen.Wht.z.fc, specimen.Wht.z.z ]]
+    
+    WRTZT = [ specimen.Wrtzt.x.fc, specimen.Wrtzt.y.fc, specimen.Wrtzt.z.fc ]
+
+    W12 = [[ specimen.W12.roll.fc, specimen.W12.roll.z ],
+           [ specimen.W12.pitch.fc, specimen.W12.pitch.z ]]
+
+    W11 = [ specimen.W11.roll.fc, specimen.W11.pitch.fc, specimen.W11.yaw.fc ]
+
+    # Create syste model
+    sys_model = SystemModel( Wht=WHT, Wrtzt=WRTZT, W11=W11, W12=W12, fs=fs)
+
+    # Simulate stimulated system model
+    for n in range(stim_size):
+
+        # Route stimuli
+        a_in, beta_in = system_model_route_input_signal( stim[n], route_opt )
+
+        # Simulate model
+        err_a, err_w = sys_model.update( a_in, beta_in )
+
+        # Square & sum for RMS value
+        for i in range(3):
+            err_a_sum[i] += ( err_a[i]**2 )
+            err_w_sum[i] += ( err_w[i]**2 )
+
+    # Calculate RMS
+    for i in range(3):
+        err_a_rms[i] = np.sqrt( err_a_sum[i] / stim_size )
+        err_w_rms[i] = np.sqrt( err_w_sum[i] / stim_size )
+
+        fitness += ( err_a_rms[i] + err_w_rms[i] )
+
+    # Higher system model error lower the fitness
+    fitness = 1 / fitness
+
+    return fitness
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -428,44 +500,6 @@ def system_model_route_input_signal(inp_sig, sel):
     return a, w
 
 
-# Fitness of speciment is defined as inversly proportional
-# model RMS error value. RMS values of accelerations and 
-# angluar velocities are sum togheter at that point 
-def calculate_fitness(specimen, fs, stim, stim_size, route_opt):
-    err_a_sum = [0] * 3
-    err_a_rms = [0] * 3
-    err_w_sum = [0] * 3
-    err_w_rms = [0] * 3
-    fitness = 0
-
-    # Create system model
-    sys_model = SystemModel( Wht=specimen.Wht, Wrtzt=specimen.Wrtzt, W11=specimen.W11, W12=specimen.W12, fs=fs)
-
-    # Simulate stimulated system model
-    for n in range(stim_size):
-
-        # Route stimuli
-        a_in, beta_in = system_model_route_input_signal( stim[n], route_opt )
-
-        # Simulate model
-        err_a, err_w = sys_model.update( a_in, beta_in )
-
-        # Square & sum for RMS value
-        for i in range(3):
-            err_a_sum[i] += ( err_a[i]**2 )
-            err_w_sum[i] += ( err_w[i]**2 )
-
-    # Calculate RMS
-    for i in range(3):
-        err_a_rms[i] = np.sqrt( err_a_sum[i] / stim_size )
-        err_w_rms[i] = np.sqrt( err_w_sum[i] / stim_size )
-
-        fitness += ( err_a_rms[i] + err_w_rms[i] )
-
-    # Higher system model error lower the fitness
-    fitness = 1 / fitness
-
-    return fitness
 
 
 
@@ -558,8 +592,12 @@ def calculate_pop_fit_and_error(pop_fit, size):
 # ==================================================
 #   WASHOUTE FILTER COEFFICIENTS LIMITS
 # ==================================================
+
+# Cutoff frequency limits
 WASHOUT_FILTER_FC_MIN_VALUE = 0.01
 WASHOUT_FILTER_FC_MAX_VALUE = 10.0
+
+# Damping factor limits
 WASHOUT_FILTER_Z_MIN_VALUE  = 0.1
 WASHOUT_FILTER_Z_MAX_VALUE  = 2.0
 
@@ -618,18 +656,12 @@ if __name__ == "__main__":
     # ===============================================================================
     pop = []
     for n in range(POPULATION_SIZE):
-        #Wht, Wrtzt, W11, W22 = generate_specimen_gene(COEFFICIENT_MIN_VALUE, COEFFICIENT_MAX_VALUE)
         Wht, Wrtzt, W11, W22 = generate_specimen_random_gene(WASHOUT_FILTER_FC_MIN_VALUE, WASHOUT_FILTER_FC_MAX_VALUE,\
                                                              WASHOUT_FILTER_Z_MIN_VALUE, WASHOUT_FILTER_Z_MAX_VALUE)
         pop.append( Specimen( Wht=Wht, Wrtzt=Wrtzt, W11=W11, W12=W22 ))
 
         
-        print_specimen_coefficient( pop[n] )
-        print("")
 
-
-
-    """
     # Variables for statistics
     best_specimen = Specimen(0,0,0,0)
     best_speciment_fit = 0
@@ -662,8 +694,10 @@ if __name__ == "__main__":
 
         # Normalise population fitness
         pop_fit_nor, overall_pop_fit = calculate_pop_fit_and_error( pop_fitness, POPULATION_SIZE )
-        #print("Population fitness distribution (percent): %s \nOverall population fitness: %.2f " % ( pop_fit_nor, overall_pop_fit ))
+        print("Population fitness distribution (percent): %s \nOverall population fitness: %.2f " % ( pop_fit_nor, overall_pop_fit ))
 
+
+        
         if g == 0:
             first_fit = overall_pop_fit
 
@@ -691,7 +725,7 @@ if __name__ == "__main__":
         elitsm_s_1 = pop[max_idx]
         elitsm_s_2 = pop[max_idx_prev]
 
-
+        """
         for s in range(int(POPULATION_SIZE/2)):
 
             # Select parents
@@ -703,7 +737,7 @@ if __name__ == "__main__":
         # KUJNEKAJ!!!!!!!!!!
         pop[0] = elitsm_s_1
         #pop[1] = elitsm_s_2
-
+        """
         
 
 
@@ -742,7 +776,7 @@ if __name__ == "__main__":
     print("End population fit: %.2f\n" % overall_pop_fit)
     print("Best coefficients:\n -Wht = %s \n -Wrtzt= %s \n -W11 = %s\n -W12 = %s\n" % ( best_specimen.Wht, best_specimen.Wrtzt, best_specimen.W11, best_specimen.W12 ))
     print("Evolution total duration: %.2f sec\n" % evo_duration )    
-    """
+    
 
 # ===============================================================================
 #       END OF FILE
