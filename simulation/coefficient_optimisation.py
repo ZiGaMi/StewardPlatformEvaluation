@@ -353,6 +353,19 @@ def calculate_pop_fit_and_error(pop_fit, size):
     return _pop_fit_nor, _fit_sum
 
 
+
+
+
+
+
+
+
+
+# ===============================================================================
+#       CLASSES
+# ===============================================================================    
+
+# Stopwatch - time execution measurement tool
 class StopWatch:
 
     def __init__(self):
@@ -383,19 +396,14 @@ class StopWatch:
 
 
 
-
-
-
-
 # ===============================================================================
-#       CLASSES
-# ===============================================================================    
-
+#       MAIN ENTRY
+# ===============================================================================
 
 
 # Population size must be even
 POPULATION_SIZE = 6
-GENERATION_SIZE = 18
+GENERATION_SIZE = 10
 
 MUTATION_RATE = 0.05
 
@@ -414,10 +422,6 @@ INPUT_SIGNAL_ROUTE_TO_YAW = 5
 INPUT_SIGNAL_ROUTE = INPUT_SIGNAL_ROUTE_TO_AX
 
 
-
-# ===============================================================================
-#       MAIN ENTRY
-# ===============================================================================
 if __name__ == "__main__":
 
     # Clear console
@@ -440,21 +444,28 @@ if __name__ == "__main__":
         pop.append( Specimen( Wht=Wht, Wrtzt=Wrtzt, W11=W11, W12=W22 ))
 
 
+    # Variables for statistics
     best_specimen = Specimen(0,0,0,0)
     best_speciment_fit = 0
     first_fit = 0
-
-
+    overall_pop_fit_prev = 0
 
     # Start timer
     evo_timer.start()
     gen_timer.start()
 
+
+
+
+
+
+
+
     for g in range(GENERATION_SIZE):
 
-
-
-        print("******* GENERATION #%s *******" % g)
+        print("===============================================================================================")
+        print("     GENERATION #%s" % g);
+        print("===============================================================================================")
 
         # ===============================================================================
         #   1. CALCULATE POPULATION FITNESS
@@ -465,10 +476,13 @@ if __name__ == "__main__":
 
         # Normalise population fitness
         pop_fit_nor, overall_pop_fit = calculate_pop_fit_and_error( pop_fitness, POPULATION_SIZE )
-        print("Population fitness distribution (percent): %s \nOverall population fitness: %.2f " % ( pop_fit_nor, overall_pop_fit ))
+        #print("Population fitness distribution (percent): %s \nOverall population fitness: %.2f " % ( pop_fit_nor, overall_pop_fit ))
 
         if g == 0:
             first_fit = overall_pop_fit
+
+
+            
     
         # ===============================================================================
         #   2. SELECTION & REPRODUCTION
@@ -500,6 +514,7 @@ if __name__ == "__main__":
             # Make love
             pop[p1_idx], pop[p2_idx] = make_new_childs( pop[p1_idx], pop[p2_idx], MUTATION_RATE, COEFFICIENT_MIN_VALUE, COEFFICIENT_MAX_VALUE )
 
+        # KUJNEKAJ!!!!!!!!!!
         pop[0] = elitsm_s_1
         #pop[1] = elitsm_s_2
 
@@ -508,21 +523,43 @@ if __name__ == "__main__":
             best_speciment_fit = pop_fitness[max_idx]
             best_specimen = elitsm_s_1
 
+
+
+
+
+
+
+
+
+        # ===============================================================================
+        #   Intermediate reports of evolution
+        # ===============================================================================
+
         # Restart timer
         exe_time = gen_timer.restart()
 
-        print( "Best coefficients:\n Wht = %s \n Wrtzt= %s \n W12 = %s\n" % ( elitsm_s_1.Wht, elitsm_s_1.Wrtzt, elitsm_s_1.W12 ))
-        print( "Execution time: %.0f ms" % (exe_time * 1e3 ))
-        print( "Evolution duration: %.2f sec\n" % evo_timer.time() )
+        # Report
+        print("Generation progress: %.2f %%\n" % (( overall_pop_fit - overall_pop_fit_prev ) / 100.0 ))
+        print("Best specimen:\n -Wht = %s \n -Wrtzt= %s \n -W11 = %s\n -W12 = %s\n" % ( elitsm_s_1.Wht, elitsm_s_1.Wrtzt, elitsm_s_1.W11, elitsm_s_1.W12 ))
+        print("Execution time: %.0f ms" % (exe_time * 1e3 ))
+        print("Evolution duration: %.2f sec\n" % evo_timer.time() )
 
+        # Store previous overall population fit 
+        overall_pop_fit_prev = overall_pop_fit
+
+
+    # Stop evolution timer
     evo_duration = evo_timer.stop()
 
-    print("\n *************** END **************");
-    print("*Best speciment fit: %s" % best_speciment_fit)
-    print("*First population fit: %s" % first_fit)
-    print("*End population fit: %s" % overall_pop_fit)
-    print( "*Best coefficients:\n Wht = %s \n Wrtzt= %s \n W12 = %s" % ( best_specimen.Wht, best_specimen.Wrtzt, best_specimen.W12 ))
-    print("Evolution total duration: %.2f sec" % evo_duration )    
+    # End report
+    print("===============================================================================================")
+    print("     EVOLUTION FINISHED");
+    print("===============================================================================================")
+    print("Best speciment fit: %.2f" % best_speciment_fit)
+    print("First population fit: %.2f" % first_fit)
+    print("End population fit: %.2f\n" % overall_pop_fit)
+    print("Best coefficients:\n -Wht = %s \n -Wrtzt= %s \n -W11 = %s\n -W12 = %s\n" % ( best_specimen.Wht, best_specimen.Wrtzt, best_specimen.W11, best_specimen.W12 ))
+    print("Evolution total duration: %.2f sec\n" % evo_duration )    
 
 
 # ===============================================================================
