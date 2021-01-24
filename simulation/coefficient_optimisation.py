@@ -41,7 +41,7 @@ IDEAL_SAMPLE_FREQ = 500.0
 ## Time window
 #
 # Unit: second
-TIME_WINDOW = 1
+TIME_WINDOW = 4
 
 ## Input signal shape
 INPUT_SIGNAL_FREQ = 0.1
@@ -56,50 +56,53 @@ INPUT_SIGNAL_SELECTION = FunctionGenerator.FG_KIND_RECT
 SAMPLE_NUM = int(( IDEAL_SAMPLE_FREQ * TIME_WINDOW ) + 1.0 )
 
 
-# =====================================================
-## TRANSLATION CHANNEL SETTINGS
 
-# HPF Wht 2nd order filter
-WASHOUT_HPF_WHT_FC_X  = 1.0
-WASHOUT_HPF_WHT_Z_X   = .7071
-WASHOUT_HPF_WHT_FC_Y  = 1.0
-WASHOUT_HPF_WHT_Z_Y   = .7071
-WASHOUT_HPF_WHT_FC_Z  = 1.0
-WASHOUT_HPF_WHT_Z_Z   = .7071
+# ==================================================
+#   WASHOUTE FILTER COEFFICIENTS LIMITS
+# ==================================================
 
-WASHOUT_HPF_WHT_COEFFICIENT = [[ WASHOUT_HPF_WHT_FC_X, WASHOUT_HPF_WHT_Z_X ],
-                               [ WASHOUT_HPF_WHT_FC_Y, WASHOUT_HPF_WHT_Z_Y ],
-                               [ WASHOUT_HPF_WHT_FC_Z, WASHOUT_HPF_WHT_Z_Z ]]
+# Cutoff frequency limits
+WASHOUT_FILTER_FC_MIN_VALUE = 0.01
+WASHOUT_FILTER_FC_MAX_VALUE = 15.0
+
+# Damping factor limits
+WASHOUT_FILTER_Z_MIN_VALUE  = 0.1
+WASHOUT_FILTER_Z_MAX_VALUE  = 2.0
 
 
-# HPF Wrtzt 1st order filter
-WASHOUT_HPF_WRTZT_FC_X  = 1.0
-WASHOUT_HPF_WRTZT_FC_Y  = 1.0
-WASHOUT_HPF_WRTZT_FC_Z  = 1.0
+# ==================================================
+#   GENETIC ALGORITHM SETTINGS
+# ==================================================
 
-WASHOUT_HPF_WRTZT_COEFFICIENT = [ WASHOUT_HPF_WRTZT_FC_X, WASHOUT_HPF_WRTZT_FC_Y, WASHOUT_HPF_WRTZT_FC_Z ]
+# Population size
+# NOTE: Minimu of 4
+POPULATION_SIZE = 100
 
-# =====================================================
-## COORDINATION CHANNEL SETTINGS
+# Number of generations
+GENERATION_SIZE = 10
 
-# LPF W12 2nd order filter
-WASHOUT_LPF_W12_FC_ROLL     = 1.0
-WASHOUT_LPF_W12_Z_ROLL      = 1.0
-WASHOUT_LPF_W12_FC_PITCH    = 1.0
-WASHOUT_LPF_W12_Z_PITCH     = 1.0
+# Mutation rate
+MUTATION_RATE = 0.05
 
-WASHOUT_LPF_W12_COEFFICIENT = [[ WASHOUT_LPF_W12_FC_ROLL, WASHOUT_LPF_W12_Z_ROLL ],
-                               [ WASHOUT_LPF_W12_FC_PITCH, WASHOUT_LPF_W12_Z_PITCH ]]
+# Mutation impact
+# NOTE: Percent of mutation impact on gene change 
+MUTATION_IMPACT = 0.25
 
-# =====================================================
-## ROTATION CHANNEL SETTINGS
+# TODO: implement elitism
+ELITISM_NUM = 0
 
-# HPF W11 1st order filter
-WASHOUT_HPF_W11_FC_ROLL     = 1.0
-WASHOUT_HPF_W11_FC_PITCH    = 1.0
-WASHOUT_HPF_W11_FC_YAW      = 1.0
 
-WASHOUT_HPF_W11_COEFFICIENT = [ WASHOUT_HPF_W11_FC_ROLL, WASHOUT_HPF_W11_FC_PITCH, WASHOUT_HPF_W11_FC_YAW ]
+# ==================================================
+#   STIMULI SIGNAL ROUTE OPTIONS
+# ==================================================
+INPUT_SIGNAL_ROUTE_TO_AX = 0
+INPUT_SIGNAL_ROUTE_TO_AY = 1
+INPUT_SIGNAL_ROUTE_TO_AZ = 2
+INPUT_SIGNAL_ROUTE_TO_ROLL = 3
+INPUT_SIGNAL_ROUTE_TO_PITCH = 4
+INPUT_SIGNAL_ROUTE_TO_YAW = 5
+
+INPUT_SIGNAL_ROUTE = INPUT_SIGNAL_ROUTE_TO_AX
 
 
 ## ****** END OF USER CONFIGURATIONS ******
@@ -255,7 +258,7 @@ def generate_specimen_random_gene(fc_low, fc_high, z_low, z_high):
     W12.roll.z   = get_random_float(z_low, z_high, 1)
     W12.pitch.fc = get_random_float(fc_low, fc_high, 1)
     W12.pitch.z  = get_random_float(z_low, z_high, 1)
-
+    
     # Generate W11 values
     W11.roll.fc  = get_random_float(fc_low, fc_high, 1)
     W11.pitch.fc = get_random_float(fc_low, fc_high, 1)
@@ -460,16 +463,51 @@ def get_mutation_target(mutation_rate, size):
     return np.random.choice([0, 1], p=[1.0 - mutation_rate, mutation_rate], size=size)
     
 
+def mutate_child_gene(gene, mutation_rate, low, high):
+    if 1 == np.random.choice([0, 1], p=[1.0 - mutation_rate, mutation_rate], size=1):
+        #return get_random_float(low, high, 1)
+
+        # 50/50 if positive or negative affect of mutation
+        if 1 == np.random.choice([0, 1], p=[0.5, 0.5], size=1):
+            mut_gene = (( 1.0 + MUTATION_IMPACT ) * gene )
+        else:
+            mut_gene = (( 1.0 - MUTATION_IMPACT ) * gene )
+
+        # Limit mutation
+        if mut_gene > high:
+            mut_gene = high
+        elif mut_gene < low:
+            mut_gene = low
+
+        return mut_gene 
+    else:
+        return gene
+
 def mutate_child(child, mutation_rate):
-    child_mut = child
 
-    if 1 == np.random.choice([0, 1], p=[1.0 - mutation_rate, mutation_rate], size=1):
-        child_mut.Wht.x.fc = get_random_float(0.01, 5, 1)
+    # Wht
+    child.Wht.x.fc  = mutate_child_gene( child.Wht.x.fc, mutation_rate, WASHOUT_FILTER_FC_MIN_VALUE, WASHOUT_FILTER_FC_MAX_VALUE )
+    child.Wht.x.z   = mutate_child_gene( child.Wht.x.z, mutation_rate, WASHOUT_FILTER_Z_MIN_VALUE, WASHOUT_FILTER_Z_MAX_VALUE )
+    child.Wht.y.fc  = mutate_child_gene( child.Wht.y.fc, mutation_rate, WASHOUT_FILTER_FC_MIN_VALUE, WASHOUT_FILTER_FC_MAX_VALUE )
+    child.Wht.y.z   = mutate_child_gene( child.Wht.y.z, mutation_rate, WASHOUT_FILTER_Z_MIN_VALUE, WASHOUT_FILTER_Z_MAX_VALUE )
+    child.Wht.z.fc  = mutate_child_gene( child.Wht.z.fc, mutation_rate, WASHOUT_FILTER_FC_MIN_VALUE, WASHOUT_FILTER_FC_MAX_VALUE )
+    child.Wht.z.z   = mutate_child_gene( child.Wht.z.z, mutation_rate, WASHOUT_FILTER_Z_MIN_VALUE, WASHOUT_FILTER_Z_MAX_VALUE )
 
-    if 1 == np.random.choice([0, 1], p=[1.0 - mutation_rate, mutation_rate], size=1):
-        child_mut.W12.pitch.z = get_random_float(0.1, 2, 1)
+    # Wrtz
+    child.Wrtzt.x.fc = mutate_child_gene( child.Wrtzt.x.fc, mutation_rate, WASHOUT_FILTER_FC_MIN_VALUE, WASHOUT_FILTER_FC_MAX_VALUE )
+    child.Wrtzt.y.fc = mutate_child_gene( child.Wrtzt.x.fc, mutation_rate, WASHOUT_FILTER_FC_MIN_VALUE, WASHOUT_FILTER_FC_MAX_VALUE )
+    child.Wrtzt.z.fc = mutate_child_gene( child.Wrtzt.x.fc, mutation_rate, WASHOUT_FILTER_FC_MIN_VALUE, WASHOUT_FILTER_FC_MAX_VALUE )
 
-    return child_mut
+    # W12
+    child.W12.roll.fc  = mutate_child_gene( child.W12.roll.fc, mutation_rate, WASHOUT_FILTER_FC_MIN_VALUE, WASHOUT_FILTER_FC_MAX_VALUE )
+    child.W12.roll.z   = mutate_child_gene( child.W12.roll.z, mutation_rate, WASHOUT_FILTER_Z_MIN_VALUE, WASHOUT_FILTER_Z_MAX_VALUE )
+
+    # W11
+    child.W11.roll.fc  = mutate_child_gene( child.W11.roll.fc, mutation_rate, WASHOUT_FILTER_FC_MIN_VALUE, WASHOUT_FILTER_FC_MAX_VALUE )
+    child.W11.pitch.fc = mutate_child_gene( child.W11.pitch.fc, mutation_rate, WASHOUT_FILTER_FC_MIN_VALUE, WASHOUT_FILTER_FC_MAX_VALUE )
+    child.W11.yaw.fc   = mutate_child_gene( child.W11.yaw.fc, mutation_rate, WASHOUT_FILTER_FC_MIN_VALUE, WASHOUT_FILTER_FC_MAX_VALUE )
+
+    return child
 
 
 def make_new_generation(pop, pop_fitness, mutation_rate):
@@ -491,14 +529,6 @@ def make_new_generation(pop, pop_fitness, mutation_rate):
         # Add child to new generation of population
         new_pop.append(child)
 
-
-
-
-        # Remove selected parants from mating pool
-        #working_pop.remove(p1)
-        #working_pop.remove(p2)
-
-
     # Apply elitsm
     # TBD...
 
@@ -509,87 +539,13 @@ def make_new_generation(pop, pop_fitness, mutation_rate):
 
 
 
-
-
-
-
-
-
-
-
-# Higher fitness parent has higher propability of selection
-# One parent thus can be selected multiple times
-# pop_fitness in range from 0-1
-def select_two_parants(pop_fitness, size):
-    pop_idx = [ n for n in range(size) ]
-
-    # Select parent 1
-    p1_idx = int( np.random.choice(pop_idx, p=pop_fitness, size=(1, 1)) )
-
-    # Select parent 2
-    while True:
-        p2_idx = int( np.random.choice(pop_idx, p=pop_fitness, size=(1, 1)) )
-
-        if p1_idx != p2_idx:
-            break
-    
-    return p1_idx, p2_idx
-
-
-def make_new_childs(p1, p2, mutation_rate, low, high):
-
-    # Crossover
-    #c1 = Specimen( p2.Wht, p1.Wrtzt, p2.W11, p1.W12 )
-    #c2 = Specimen( p1.Wht, p2.Wrtzt, p1.W11, p2.W12 )
-    c1 = Specimen( p1.Wht, p1.Wrtzt, p1.W11, p1.W12 )
-    c2 = Specimen( p2.Wht, p2.Wrtzt, p2.W11, p2.W12 )
-
-    # Cross over translation channel X fc & titl coordination channel damping factor
-    Wht_fc_x = c1.Wht[0][0]
-    c1.Wht[0][0] = c2.Wht[0][0] 
-    c2.Wht[0][0] = Wht_fc_x
-
-    W12_z_roll = c1.W12[0][1]
-    c1.W12[0][1] = c2.W12[0][1]
-    c2.W12[0][1] = W12_z_roll
-
-
-
-    # Mutate
-    mutation_target = get_mutation_target( mutation_rate, 4 )
-    mut_Wht, mut_Wrtzt, mut_W11, mut_W12 = generate_specimen_gene(low, high)
-
-    for n in range(4):
-        if 1 == mutation_target[n]:
-            if 0 == n:  
-                c1.Wht[0][0] = mut_Wht[0][0]
-            elif 1 == n:
-                c1.Wht[0][1] = mut_Wht[0][1]
-            elif 2 == n:
-                c1.W12[0][0] = mut_W12[0][0]
-            elif 3 == n:
-                c1.W12[0][1] = mut_W12[0][1]
-
-    # Mutate
-    mutation_target = get_mutation_target( mutation_rate, 4 )
-    mut_Wht, mut_Wrtzt, mut_W11, mut_W22 = generate_specimen_gene(low, high)
-
-    for n in range(4):
-        if 1 == mutation_target[n]:
-            if 0 == n:  
-                c2.Wht[0][0] = mut_Wht[0][0]
-            elif 1 == n:
-                c2.Wht[0][1] = mut_Wht[0][1]
-            elif 2 == n:
-                c2.W12[0][0] = mut_W12[0][0]
-            elif 3 == n:
-                c2.W12[0][1] = mut_W12[0][1]
-
-    return c1, c2
-    
-
-
-
+# ===============================================================================
+# @brief: Route signals to stimuli individual dimensions - MUX
+#
+# @param[in]:    inp_sig    - Input signal
+# @param[in]:    sel        - Multiplexor selection
+# @return:       a,w        - Acceleration & angular rates outputs
+# ===============================================================================
 def system_model_route_input_signal(inp_sig, sel):
     a = [0] * 3
     w = [0] * 3
@@ -613,12 +569,11 @@ def system_model_route_input_signal(inp_sig, sel):
 
 
 
-
-
-
-
-
-
+# ===============================================================================
+# @brief: Generate stimuli signal, based on FunctionGenerator settings...
+#
+# @return: Stimuli signal
+# ===============================================================================
 def generate_stimuli_signal():
 
     # Time array
@@ -669,78 +624,6 @@ def generate_stimuli_signal():
         
 
     return _x, len(_x)
-
-
-def calculate_pop_fit_and_error(pop_fit, size):
-    _pop_fit_nor = [0] * size
-    _fit_sum = 0
-
-    # Sum fit of whole population fitness
-    for n in range(size):
-        _fit_sum += pop_fit[n]
-
-    # Normalise fitness
-    # NOTE: Higher fitness means lower error of system model
-    for n in range(size):
-        _pop_fit_nor[n] = pop_fit[n] / _fit_sum
-
-    return _pop_fit_nor, _fit_sum
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# ==================================================
-#   WASHOUTE FILTER COEFFICIENTS LIMITS
-# ==================================================
-
-# Cutoff frequency limits
-WASHOUT_FILTER_FC_MIN_VALUE = 0.01
-WASHOUT_FILTER_FC_MAX_VALUE = 10.0
-
-# Damping factor limits
-WASHOUT_FILTER_Z_MIN_VALUE  = 0.1
-WASHOUT_FILTER_Z_MAX_VALUE  = 2.0
-
-
-# ==================================================
-#   GENETIC ALGORITHM SETTINGS
-# ==================================================
-
-# Population size
-# NOTE: Prefered to be even
-POPULATION_SIZE = 20
-
-# Number of generations
-GENERATION_SIZE = 10
-
-# Mutation rate
-MUTATION_RATE = 0.10
-
-
-# ==================================================
-#   STIMULI SIGNAL ROUTE OPTIONS
-# ==================================================
-INPUT_SIGNAL_ROUTE_TO_AX = 0
-INPUT_SIGNAL_ROUTE_TO_AY = 1
-INPUT_SIGNAL_ROUTE_TO_AZ = 2
-INPUT_SIGNAL_ROUTE_TO_ROLL = 3
-INPUT_SIGNAL_ROUTE_TO_PITCH = 4
-INPUT_SIGNAL_ROUTE_TO_YAW = 5
-
-INPUT_SIGNAL_ROUTE = INPUT_SIGNAL_ROUTE_TO_AX
-
 
 
 
@@ -796,25 +679,9 @@ if __name__ == "__main__":
         # ===============================================================================
         pop_fitness, pop_fitness_sum = calculate_population_fitness( pop, POPULATION_SIZE, SAMPLE_FREQ, stim_signal, stim_size, INPUT_SIGNAL_ROUTE )
        
-
         # Store first population fitness sum
         if g == 0:
             first_pop_fitness_sum = pop_fitness_sum
-
-        #print(pop_fitness)
-        #print(pop_fitness_sum)
-
-        #for n in range(POPULATION_SIZE):
-        #    pop_fitness.append( calculate_fitness(pop[n], SAMPLE_FREQ, stim_signal, stim_size, INPUT_SIGNAL_ROUTE ))
-
-        # Normalise population fitness
-        #pop_fit_nor, overall_pop_fit = calculate_pop_fit_and_error( pop_fitness, POPULATION_SIZE )
-        #print("Population fitness distribution (percent): %s \nOverall population fitness: %.2f " % ( pop_fit_nor, overall_pop_fit ))
-
-
-
-
-
 
     
         # ===============================================================================
@@ -824,49 +691,6 @@ if __name__ == "__main__":
         # Make a new (BETTER) generation
         pop = make_new_generation(pop, pop_fitness, MUTATION_RATE)
 
-        
-        """
-        elitsm_s_1 = Specimen(0,0,0,0)
-        elitsm_s_2 = Specimen(0,0,0,0)
-
-        max = 0
-        max_idx = 0
-        max_idx_prev = 0
-        temp_pop = pop_fit_nor
-        for idx, fit in enumerate(temp_pop):
-            if fit > max:
-                max = fit
-                max_idx_prev = max_idx
-                max_idx = idx
-                
-
-
-        elitsm_s_1 = pop[max_idx]
-        elitsm_s_2 = pop[max_idx_prev]
-        """
-
-        """
-        for s in range(int(POPULATION_SIZE/2)):
-
-            # Select parents
-            p1_idx, p2_idx = select_two_parants( pop_fit_nor, POPULATION_SIZE )
-
-            # Make love
-            pop[p1_idx], pop[p2_idx] = make_new_childs( pop[p1_idx], pop[p2_idx], MUTATION_RATE, COEFFICIENT_MIN_VALUE, COEFFICIENT_MAX_VALUE )
-
-        # KUJNEKAJ!!!!!!!!!!
-        pop[0] = elitsm_s_1
-        #pop[1] = elitsm_s_2
-        """
-        
-
-
-
-        """
-        if pop_fitness[max_idx] >  best_speciment_fit:
-            best_speciment_fit = pop_fitness[max_idx]
-            best_specimen = elitsm_s_1
-        """
 
 
         # ===============================================================================
@@ -905,9 +729,27 @@ if __name__ == "__main__":
     print("===============================================================================================")
     #print("Best speciment fit: \n %s" % print_specimen_coefficient( best_speciment_fit ))
     print("First population fit: %.2f" % first_pop_fitness_sum)
-    print("End population fit: %.2f\n" % pop_fitness_sum)
+    print("End population fit: %.2f" % pop_fitness_sum)
+    print("End score: %.2f\n" % ( pop_fitness_sum / POPULATION_SIZE ))
     #print("Best coefficients:\n -Wht = %s \n -Wrtzt= %s \n -W11 = %s\n -W12 = %s\n" % ( best_specimen.Wht, best_specimen.Wrtzt, best_specimen.W11, best_specimen.W12 ))
     print("Evolution total duration: %.2f sec\n" % evo_duration )    
+
+    max_fitness = 0
+    max_fitness_idx = 0
+    for idx, p in enumerate(pop_fitness):
+        if p > max_fitness:
+            max_fitness = p
+            max_fitness_idx = idx
+    
+    print("Best specimen coefficients: ")
+    print_specimen_coefficient( pop[max_fitness_idx], raw=True )
+
+    print("\nGA SETTINGS:")
+    print("Number of generations: %s" % GENERATION_SIZE)
+    print("Number of populations: %s" % POPULATION_SIZE)
+    print("Mutation rate: %s" % MUTATION_RATE)
+    print("Mutation impact: %s" % MUTATION_IMPACT)
+    print("Elithism number: %s" % ELITISM_NUM)
     
 
 # ===============================================================================
