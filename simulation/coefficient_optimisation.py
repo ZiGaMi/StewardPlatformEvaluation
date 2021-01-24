@@ -104,32 +104,233 @@ WASHOUT_HPF_W11_COEFFICIENT = [ WASHOUT_HPF_W11_FC_ROLL, WASHOUT_HPF_W11_FC_PITC
 ## ****** END OF USER CONFIGURATIONS ******
 
 # ===============================================================================
+#       CLASSES
+# ===============================================================================    
+
+# First order filter coefficients
+class Filter1ndOrderCoefficient:
+    def __init__(self):
+        self.fc = 0
+
+# Second order filter coefficients
+class Filter2ndOrderCoefficient:
+    def __init__(self):
+        self.fc = 0
+        self.z = 0    
+
+# Wht washout filter coefficients
+class WashoutWhtCoefficients:
+    def __init__(self):
+        self.x = Filter2ndOrderCoefficient()
+        self.y = Filter2ndOrderCoefficient()
+        self.z = Filter2ndOrderCoefficient()
+
+# Wrtzt washout filter coefficients
+class WashoutWrtztCoefficients:
+    def __init__(self):
+        self.x = Filter1ndOrderCoefficient()
+        self.y = Filter1ndOrderCoefficient()
+        self.z = Filter1ndOrderCoefficient()
+
+# W12 washout filter coefficients
+class WashoutW12Coefficients:
+    def __init__(self):
+        self.roll   = Filter2ndOrderCoefficient()
+        self.pitch  = Filter2ndOrderCoefficient()
+
+# W11 washout filter coefficients
+class WashoutW11Coefficients:
+    def __init__(self):
+        self.roll   = Filter1ndOrderCoefficient()
+        self.pitch  = Filter1ndOrderCoefficient()
+        self.yaw    = Filter1ndOrderCoefficient()
+
+# Specimen as one of many in population
+class Specimen:
+    def __init__(self, Wht, Wrtzt, W11, W12):
+        self.Wht    = Wht
+        self.Wrtzt  = Wrtzt
+        self.W11    = W11
+        self.W12    = W12
+
+# Stopwatch - time execution measurement tool
+class StopWatch:
+
+    def __init__(self):
+        self._time = 0
+        self._is_running = False
+
+    def start(self):
+        if False == self._is_running:
+            self._is_running = True
+            self._time = time.time()
+        else:
+            assert False, "Stopwatch already running!"
+
+    def stop(self):
+        if True == self._is_running:
+            self._is_running = False
+            return time.time() - self._time
+        else:
+            assert False, "Stopwatch has not been started!"
+
+    def restart(self):
+        _time_pass = self.stop()
+        self.start()
+        return _time_pass
+
+    def time(self):
+        return time.time() - self._time
+
+
+
+# ===============================================================================
 #       FUNCTIONS
 # ===============================================================================
 
 
+# ===============================================================================
+# @brief: Generate random intiger array in range (low, high) 
+#
+# @param[in]:    low            - Minimum random value
+# @param[in]:    high           - Maximum random value
+# @param[in]:    size           - Size of array
+# @return:       array/value    - Array or single value if size = 1
+# ===============================================================================
 def get_random_int(low, high, size):
-    return np.random.randint(low, high, size)
+    if 1 == size:
+        return np.random.randint(low, high, size)[0]
+    else:
+        return np.random.randint(low, high, size)
 
-
+# ===============================================================================
+# @brief: Generate random float array in range (low, high) 
+#
+# @param[in]:    low            - Minimum random value
+# @param[in]:    high           - Maximum random value
+# @param[in]:    size           - Size of array
+# @return:       array/value    - Array or single value if size = 1
+# ===============================================================================
 def get_random_float(low, high, size):
     if 1 == size:
         return np.random.uniform(low, high, size)[0]
     else:
         return np.random.uniform(low, high, size)
 
+# ===============================================================================
+# @brief: Generate random specimen genes
+#
+# @param[in]:    fc_low                 - Minimum value of cutoff frequency
+# @param[in]:    fc_high                - Maximum value of cutoff frequency 
+# @param[in]:    z_low                  - Minimum value of damping factor
+# @param[in]:    z_high                 - Maximum value of damping factor 
+# @return:       Wht, Wrtzt, W11, W12   - Specimen washout filter coefficients
+# ===============================================================================
+def generate_specimen_random_gene(fc_low, fc_high, z_low, z_high):
+
+    # Create washout coefficients
+    Wht     = WashoutWhtCoefficients()
+    Wrtzt   = WashoutWrtztCoefficients()
+    W12     = WashoutW12Coefficients()
+    W11     = WashoutW11Coefficients()
+
+    # Generte Wht values
+    Wht.x.fc = get_random_float(fc_low, fc_high, 1)
+    Wht.x.z  = get_random_float(z_low, z_high, 1)
+    Wht.y.fc = get_random_float(fc_low, fc_high, 1)
+    Wht.y.z  = get_random_float(z_low, z_high, 1)
+    Wht.z.fc = get_random_float(fc_low, fc_high, 1)
+    Wht.z.z  = get_random_float(z_low, z_high, 1)
+
+    # Generate Wrtzt values
+    Wrtzt.x.fc = get_random_float(fc_low, fc_high, 1)
+    Wrtzt.y.fc = get_random_float(fc_low, fc_high, 1)
+    Wrtzt.z.fc = get_random_float(fc_low, fc_high, 1)
+
+    # Generate W12 values
+    W12.roll.fc  = get_random_float(fc_low, fc_high, 1)
+    W12.roll.z   = get_random_float(z_low, z_high, 1)
+    W12.pitch.fc = get_random_float(fc_low, fc_high, 1)
+    W12.pitch.z  = get_random_float(z_low, z_high, 1)
+
+    # Generate W11 values
+    W11.roll.fc  = get_random_float(fc_low, fc_high, 1)
+    W11.pitch.fc = get_random_float(fc_low, fc_high, 1)
+    W11.yaw.fc   = get_random_float(fc_low, fc_high, 1)
+
+    return Wht, Wrtzt, W11, W12
+
+# ===============================================================================
+# @brief: List specimen coefficients (genes)
+#
+#      Coefficient list order:
+#
+#           [0] - Wht x-axis fc
+#           [1] - Wht x-axis zeta
+#           [2] - Wht y-axis fc
+#           [3] - Wht y-axis zeta
+#           [4] - Wht z-axis fc
+#           [5] - Wht z-axis zeta
+#
+#           [6] - Wrtzt x-axis fc
+#           [7] - Wrtzt y-axis fc
+#           [8] - Wrtzt z-axis fc
+#
+#           [9]  - W12 roll fc
+#           [10] - W12 roll zeta
+#           [11] - W12 pitch fc
+#           [12] - W12 pitch zeta    
+# 
+#           [13] - W11 roll fc
+#           [14] - W11 pitch fc
+#           [15] - W11 yaw fc                
+#
+# @param[in]:    specimen   - Speciment of a population
+# @return:       coef       - List of coefficients
+# ===============================================================================
+def list_specimen_coefficient(specimen):
+
+    coef = [specimen.Wht.x.fc, specimen.Wht.x.z,\
+            specimen.Wht.y.fc, specimen.Wht.y.z,\
+            specimen.Wht.z.fc, specimen.Wht.z.z,\
+            specimen.Wrtzt.x.fc, specimen.Wrtzt.y.fc, specimen.Wrtzt.z.fc,\
+            specimen.W12.roll.fc, specimen.W12.roll.z,\
+            specimen.W12.pitch.fc, specimen.W12.pitch.z,\
+            specimen.W11.roll.fc, specimen.W11.pitch.fc, specimen.W11.yaw.fc ] 
+
+    return coef
+
+# ===============================================================================
+# @brief:   Print specimen coefficients. Raw option to print in such for
+#           that copy/past to sript is easyier.
+#
+# @param[in]:    specimen   - Speciment of population 
+# @param[in]:    raw        - Print option
+# @return:       void
+# ===============================================================================
+def print_specimen_coefficient(specimen, raw=False):
+    coef = list_specimen_coefficient(specimen)
+
+    if False == raw:
+        print("Wht   =[ x:[fc:%.3f, zeta:%.3f] y:[fc:%.3f, zeta:%.3f] z:[fc:%.3f, zeta:%.3f] ]" % ( coef[0], coef[1], coef[2], coef[3], coef[4], coef[5] ))
+        print("Wrtzt =[ x:[fc:%.3f] y:[fc:%.3f] z:[fc:%.3f] ]" % ( coef[6], coef[7], coef[8] ))
+        print("W12   =[ roll:[fc:%.3f, zeta:%.3f] pitch:[fc:%.3f, zeta:%.3f] ]" % ( coef[9], coef[10], coef[11], coef[12] ))
+        print("W11   =[ roll:[fc:%.3f] pitch:[fc:%.3f] yaw:[fc:%.3f] ]" % ( coef[13], coef[14], coef[15] ))
+    else:
+        print("Wht   =[[%.6f,%.6f],[%.6f,%.6f],[%.6f,%.6f]]"    % ( coef[0], coef[1], coef[2], coef[3], coef[4], coef[5] ))
+        print("Wrtzt =[%.6f,%.6f,%.6f]"                         % ( coef[6], coef[7], coef[8] ))
+        print("W12   =[[ %.6f, %.6f ],[%.6f,%.6f]]"             % ( coef[9], coef[10], coef[11], coef[12] ))
+        print("W11   =[%.6f,%.6f,%.6f]"                         % ( coef[13], coef[14], coef[15] ))
+
+             
+
+
+
+
+
+
 def get_mutation_target(mutation_rate, size):
     return np.random.choice([0, 1], p=[1.0 - mutation_rate, mutation_rate], size=size)
-
-
-# Specimen as one of many in population
-class Specimen:
-
-    def __init__(self, Wht, Wrtzt, W11, W12):
-        self.Wht    = Wht
-        self.Wrtzt  = Wrtzt
-        self.W11    = W11
-        self.W12    = W12
 
 
 # Higher fitness parent has higher propability of selection
@@ -267,20 +468,7 @@ def calculate_fitness(specimen, fs, stim, stim_size, route_opt):
     return fitness
 
 
-def generate_specimen_gene(low, high):
 
-    Wht = [ [ get_random_float(low, high, 1), get_random_float(low, 2, 1) ],
-            [ get_random_float(low, high, 1), get_random_float(low, 2, 1) ],
-            [ get_random_float(low, high, 1), get_random_float(low, 2, 1) ]]
-
-    Wrtzt = [ get_random_float(low, high, 1), get_random_float(low, high, 1), get_random_float(low, high, 1) ]
-
-    W11 = [ get_random_float(low, high, 1), get_random_float(low, high, 1), get_random_float(low, high, 1) ]
-
-    W12 = [ [ get_random_float(low, high, 1), get_random_float(low, 2, 1) ],
-            [ get_random_float(low, high, 1), get_random_float(low, 2, 1) ]]
-
-    return Wht, Wrtzt, W11, W12
 
 
 
@@ -361,57 +549,39 @@ def calculate_pop_fit_and_error(pop_fit, size):
 
 
 
-# ===============================================================================
-#       CLASSES
-# ===============================================================================    
-
-# Stopwatch - time execution measurement tool
-class StopWatch:
-
-    def __init__(self):
-        self._time = 0
-        self._is_running = False
-
-    def start(self):
-        if False == self._is_running:
-            self._is_running = True
-            self._time = time.time()
-        else:
-            assert False, "Stopwatch already running!"
-
-    def stop(self):
-        if True == self._is_running:
-            self._is_running = False
-            return time.time() - self._time
-        else:
-            assert False, "Stopwatch has not been started!"
-
-    def restart(self):
-        _time_pass = self.stop()
-        self.start()
-        return _time_pass
-
-    def time(self):
-        return time.time() - self._time
 
 
 
-# ===============================================================================
-#       MAIN ENTRY
-# ===============================================================================
 
 
-# Population size must be even
-POPULATION_SIZE = 6
+
+# ==================================================
+#   WASHOUTE FILTER COEFFICIENTS LIMITS
+# ==================================================
+WASHOUT_FILTER_FC_MIN_VALUE = 0.01
+WASHOUT_FILTER_FC_MAX_VALUE = 10.0
+WASHOUT_FILTER_Z_MIN_VALUE  = 0.1
+WASHOUT_FILTER_Z_MAX_VALUE  = 2.0
+
+
+# ==================================================
+#   GENETIC ALGORITHM SETTINGS
+# ==================================================
+
+# Population size
+# NOTE: Prefered to be even
+POPULATION_SIZE = 10
+
+# Number of generations
 GENERATION_SIZE = 10
 
+# Mutation rate
 MUTATION_RATE = 0.05
 
-COEFFICIENT_MIN_VALUE = 0.001
-COEFFICIENT_MAX_VALUE = 5.0
 
-
-## Input signal route
+# ==================================================
+#   STIMULI SIGNAL ROUTE OPTIONS
+# ==================================================
 INPUT_SIGNAL_ROUTE_TO_AX = 0
 INPUT_SIGNAL_ROUTE_TO_AY = 1
 INPUT_SIGNAL_ROUTE_TO_AZ = 2
@@ -422,8 +592,16 @@ INPUT_SIGNAL_ROUTE_TO_YAW = 5
 INPUT_SIGNAL_ROUTE = INPUT_SIGNAL_ROUTE_TO_AX
 
 
+
+
+
+
+# ===============================================================================
+#       MAIN ENTRY
+# ===============================================================================
 if __name__ == "__main__":
 
+    
     # Clear console
     os.system("cls")
 
@@ -440,10 +618,18 @@ if __name__ == "__main__":
     # ===============================================================================
     pop = []
     for n in range(POPULATION_SIZE):
-        Wht, Wrtzt, W11, W22 = generate_specimen_gene(COEFFICIENT_MIN_VALUE, COEFFICIENT_MAX_VALUE)
+        #Wht, Wrtzt, W11, W22 = generate_specimen_gene(COEFFICIENT_MIN_VALUE, COEFFICIENT_MAX_VALUE)
+        Wht, Wrtzt, W11, W22 = generate_specimen_random_gene(WASHOUT_FILTER_FC_MIN_VALUE, WASHOUT_FILTER_FC_MAX_VALUE,\
+                                                             WASHOUT_FILTER_Z_MIN_VALUE, WASHOUT_FILTER_Z_MAX_VALUE)
         pop.append( Specimen( Wht=Wht, Wrtzt=Wrtzt, W11=W11, W12=W22 ))
 
+        
+        print_specimen_coefficient( pop[n] )
+        print("")
 
+
+
+    """
     # Variables for statistics
     best_specimen = Specimen(0,0,0,0)
     best_speciment_fit = 0
@@ -482,7 +668,7 @@ if __name__ == "__main__":
             first_fit = overall_pop_fit
 
 
-            
+
     
         # ===============================================================================
         #   2. SELECTION & REPRODUCTION
@@ -519,17 +705,13 @@ if __name__ == "__main__":
         #pop[1] = elitsm_s_2
 
         
+
+
+
+
         if pop_fitness[max_idx] >  best_speciment_fit:
             best_speciment_fit = pop_fitness[max_idx]
             best_specimen = elitsm_s_1
-
-
-
-
-
-
-
-
 
         # ===============================================================================
         #   Intermediate reports of evolution
@@ -539,7 +721,7 @@ if __name__ == "__main__":
         exe_time = gen_timer.restart()
 
         # Report
-        print("Generation progress: %.2f %%\n" % (( overall_pop_fit - overall_pop_fit_prev ) / 100.0 ))
+        print("Generation progress (in fits): %.2f\n" % ( overall_pop_fit - overall_pop_fit_prev ))
         print("Best specimen:\n -Wht = %s \n -Wrtzt= %s \n -W11 = %s\n -W12 = %s\n" % ( elitsm_s_1.Wht, elitsm_s_1.Wrtzt, elitsm_s_1.W11, elitsm_s_1.W12 ))
         print("Execution time: %.0f ms" % (exe_time * 1e3 ))
         print("Evolution duration: %.2f sec\n" % evo_timer.time() )
@@ -560,7 +742,7 @@ if __name__ == "__main__":
     print("End population fit: %.2f\n" % overall_pop_fit)
     print("Best coefficients:\n -Wht = %s \n -Wrtzt= %s \n -W11 = %s\n -W12 = %s\n" % ( best_specimen.Wht, best_specimen.Wrtzt, best_specimen.W11, best_specimen.W12 ))
     print("Evolution total duration: %.2f sec\n" % evo_duration )    
-
+    """
 
 # ===============================================================================
 #       END OF FILE
