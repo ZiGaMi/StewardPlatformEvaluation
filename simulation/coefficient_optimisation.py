@@ -11,8 +11,10 @@
 #       IMPORTS  
 # ===============================================================================
 import sys
+import os
 import matplotlib.pyplot as plt
 import numpy as np
+import time
 
 from filters.filter_utils import FunctionGenerator
 from system_model import SystemModel
@@ -38,7 +40,7 @@ IDEAL_SAMPLE_FREQ = 500.0
 ## Time window
 #
 # Unit: second
-TIME_WINDOW = 6
+TIME_WINDOW = 2
 
 ## Input signal shape
 INPUT_SIGNAL_FREQ = 0.1
@@ -152,8 +154,21 @@ def select_two_parants(pop_fitness, size):
 def make_new_childs(p1, p2, mutation_rate, low, high):
 
     # Crossover
-    c1 = Specimen( p2.Wht, p1.Wrtzt, p2.W11, p1.W12 )
-    c2 = Specimen( p1.Wht, p2.Wrtzt, p1.W11, p2.W12 )
+    #c1 = Specimen( p2.Wht, p1.Wrtzt, p2.W11, p1.W12 )
+    #c2 = Specimen( p1.Wht, p2.Wrtzt, p1.W11, p2.W12 )
+    c1 = Specimen( p1.Wht, p1.Wrtzt, p1.W11, p1.W12 )
+    c2 = Specimen( p2.Wht, p2.Wrtzt, p2.W11, p2.W12 )
+
+    # Cross over translation channel X fc & titl coordination channel damping factor
+    Wht_fc_x = c1.Wht[0][0]
+    c1.Wht[0][0] = c2.Wht[0][0] 
+    c2.Wht[0][0] = Wht_fc_x
+
+    W12_z_roll = c1.W12[0][1]
+    c1.W12[0][1] = c2.W12[0][1]
+    c2.W12[0][1] = W12_z_roll
+
+
 
     # Mutate
     mutation_target = get_mutation_target( mutation_rate, 4 )
@@ -162,13 +177,13 @@ def make_new_childs(p1, p2, mutation_rate, low, high):
     for n in range(4):
         if 1 == mutation_target[n]:
             if 0 == n:  
-                c1.Wht = mut_Wht
+                c1.Wht[0][0] = mut_Wht[0][0]
             elif 1 == n:
-                c1.Wrtzt = mut_Wrtzt
+                c1.Wht[0][1] = mut_Wht[0][1]
             elif 2 == n:
-                c1.W11 = mut_W11
+                c1.W12[0][0] = mut_W12[0][0]
             elif 3 == n:
-                c1.W12 = mut_W12
+                c1.W12[0][1] = mut_W12[0][1]
 
     # Mutate
     mutation_target = get_mutation_target( mutation_rate, 4 )
@@ -177,13 +192,13 @@ def make_new_childs(p1, p2, mutation_rate, low, high):
     for n in range(4):
         if 1 == mutation_target[n]:
             if 0 == n:  
-                c2.Wht = mut_Wht
+                c2.Wht[0][0] = mut_Wht[0][0]
             elif 1 == n:
-                c2.Wrtzt = mut_Wrtzt
+                c2.Wht[0][1] = mut_Wht[0][1]
             elif 2 == n:
-                c2.W11 = mut_W11
+                c2.W12[0][0] = mut_W12[0][0]
             elif 3 == n:
-                c2.W12 = mut_W12
+                c2.W12[0][1] = mut_W12[0][1]
 
     return c1, c2
     
@@ -236,8 +251,8 @@ def calculate_fitness(specimen, fs, stim, stim_size, route_opt):
 
         # Square & sum for RMS value
         for i in range(3):
-            err_a_sum[i] += err_a[i]**2
-            err_w_sum[i] += err_w[i]**2
+            err_a_sum[i] += ( err_a[i]**2 )
+            err_w_sum[i] += ( err_w[i]**2 )
 
     # Calculate RMS
     for i in range(3):
@@ -295,10 +310,10 @@ def generate_stimuli_signal():
         # Some custom signal
         CUSTOM_SIG_MAX = 1
 
-        DELAY_TIME = 1
+        DELAY_TIME = 0.1
         RISE_TIME = 1
         FALL_TIME = 1
-        DURATION_OF_MAX = 1
+        DURATION_OF_MAX = 0.5
 
         if _time[n] < DELAY_TIME:
             _x[n] = 0.0
@@ -323,19 +338,51 @@ def generate_stimuli_signal():
 
 
 def calculate_pop_fit_and_error(pop_fit, size):
-    pop_fit_nor = [0] * size
-    fit_sum = 0
+    _pop_fit_nor = [0] * size
+    _fit_sum = 0
 
     # Sum fit of whole population fitness
     for n in range(size):
-        fit_sum += pop_fit[n]
+        _fit_sum += pop_fit[n]
 
     # Normalise fitness
     # NOTE: Higher fitness means lower error of system model
     for n in range(size):
-        pop_fit_nor[n] = pop_fit[n] / fit_sum
+        _pop_fit_nor[n] = pop_fit[n] / _fit_sum
 
-    return pop_fit_nor, fit_sum
+    return _pop_fit_nor, _fit_sum
+
+
+class StopWatch:
+
+    def __init__(self):
+        self._time = 0
+        self._is_running = False
+
+    def start(self):
+        if False == self._is_running:
+            self._is_running = True
+            self._time = time.time()
+        else:
+            assert False, "Stopwatch already running!"
+
+    def stop(self):
+        if True == self._is_running:
+            self._is_running = False
+            return time.time() - self._time
+        else:
+            assert False, "Stopwatch has not been started!"
+
+    def restart(self):
+        _time_pass = self.stop()
+        self.start()
+        return _time_pass
+
+    def time(self):
+        return time.time() - self._time
+
+
+
 
 
 
@@ -347,10 +394,10 @@ def calculate_pop_fit_and_error(pop_fit, size):
 
 
 # Population size must be even
-POPULATION_SIZE = 20
-GENERATION_SIZE = 200
+POPULATION_SIZE = 6
+GENERATION_SIZE = 18
 
-MUTATION_RATE = 0.02
+MUTATION_RATE = 0.05
 
 COEFFICIENT_MIN_VALUE = 0.001
 COEFFICIENT_MAX_VALUE = 5.0
@@ -373,6 +420,12 @@ INPUT_SIGNAL_ROUTE = INPUT_SIGNAL_ROUTE_TO_AX
 # ===============================================================================
 if __name__ == "__main__":
 
+    # Clear console
+    os.system("cls")
+
+    # Generation & evolution timer
+    gen_timer = StopWatch()
+    evo_timer = StopWatch()
 
     # Generate stimuli signal
     stim_signal, stim_size = generate_stimuli_signal()
@@ -391,7 +444,15 @@ if __name__ == "__main__":
     best_speciment_fit = 0
     first_fit = 0
 
+
+
+    # Start timer
+    evo_timer.start()
+    gen_timer.start()
+
     for g in range(GENERATION_SIZE):
+
+
 
         print("******* GENERATION #%s *******" % g)
 
@@ -400,7 +461,6 @@ if __name__ == "__main__":
         # ===============================================================================
         pop_fitness = []
         for n in range(POPULATION_SIZE):
-            #print("Specimen #%s fitness calculation..." % n)
             pop_fitness.append( calculate_fitness(pop[n], SAMPLE_FREQ, stim_signal, stim_size, INPUT_SIGNAL_ROUTE ))
 
         # Normalise population fitness
@@ -441,21 +501,28 @@ if __name__ == "__main__":
             pop[p1_idx], pop[p2_idx] = make_new_childs( pop[p1_idx], pop[p2_idx], MUTATION_RATE, COEFFICIENT_MIN_VALUE, COEFFICIENT_MAX_VALUE )
 
         pop[0] = elitsm_s_1
-        pop[1] = elitsm_s_2
+        #pop[1] = elitsm_s_2
 
         
         if pop_fitness[max_idx] >  best_speciment_fit:
             best_speciment_fit = pop_fitness[max_idx]
             best_specimen = elitsm_s_1
 
-        print( "Best coefficients:\n Wht = %s \n Wrtzt= %s \n W12 = %s" % ( elitsm_s_1.Wht, elitsm_s_1.Wrtzt, elitsm_s_1.W12 ))
+        # Restart timer
+        exe_time = gen_timer.restart()
+
+        print( "Best coefficients:\n Wht = %s \n Wrtzt= %s \n W12 = %s\n" % ( elitsm_s_1.Wht, elitsm_s_1.Wrtzt, elitsm_s_1.W12 ))
+        print( "Execution time: %.0f ms" % (exe_time * 1e3 ))
+        print( "Evolution duration: %.2f sec\n" % evo_timer.time() )
+
+    evo_duration = evo_timer.stop()
 
     print("\n *************** END **************");
-    print("*Best fit: %s" % best_speciment_fit)
-    print("*First fit: %s" % first_fit)
+    print("*Best speciment fit: %s" % best_speciment_fit)
+    print("*First population fit: %s" % first_fit)
+    print("*End population fit: %s" % overall_pop_fit)
     print( "*Best coefficients:\n Wht = %s \n Wrtzt= %s \n W12 = %s" % ( best_specimen.Wht, best_specimen.Wrtzt, best_specimen.W12 ))
-
-
+    print("Evolution total duration: %.2f sec" % evo_duration )    
 
 
 # ===============================================================================
