@@ -41,7 +41,7 @@ IDEAL_SAMPLE_FREQ = 500.0
 ## Time window
 #
 # Unit: second
-TIME_WINDOW = 4
+TIME_WINDOW = 1
 
 ## Input signal shape
 INPUT_SIGNAL_FREQ = 0.1
@@ -76,20 +76,27 @@ WASHOUT_FILTER_Z_MAX_VALUE  = 2.0
 
 # Population size
 # NOTE: Minimu of 4
-POPULATION_SIZE = 100
+POPULATION_SIZE = 40
 
 # Number of generations
-GENERATION_SIZE = 10
+GENERATION_SIZE = 20
 
-# Mutation rate
-MUTATION_RATE = 0.05
+# Mutation propability
+MUTATION_PROPABILITY = 0.02
 
 # Mutation impact
 # NOTE: Percent of mutation impact on gene change 
-MUTATION_IMPACT = 0.25
+MUTATION_IMPACT = 0.05
 
 # TODO: implement elitism
 ELITISM_NUM = 0
+
+# Size of tournament
+# NOTE: Must not be smaller than population size
+TURNAMENT_SIZE = 10
+
+# Crossover propability
+CROSSOVER_PROPABILITY = 0.5
 
 
 # ==================================================
@@ -417,44 +424,64 @@ def calculate_population_fitness(pop, pop_size, fs, stim_signal, stim_size, stim
 
 
 
-
 # Based on turnamet selection
 def select_parents(pop, pop_fitness):
 
-    # Select four specimen for mating
-    s1, s2, s3, s4 = random.sample(range(0, len(pop)), 4)
+    # Pick turnament candidates
+    turnament_candidates_idx = random.sample(range(0, len(pop)), TURNAMENT_SIZE)
 
-    # Make a turnament
-    if pop_fitness[ s1 ] > pop_fitness[ s2 ]:
-        p1 = pop[s1]
-    else:
-        p1 = pop[s2]
+    # Collect candidate fitness
+    candidate_fitness = []
+    for n in range(TURNAMENT_SIZE):
+        candidate_fitness.append( pop_fitness[ turnament_candidates_idx[n]] )
 
-    if pop_fitness[ s3 ] > pop_fitness[ s4 ]:
-        p2 = pop[s3]
-    else:
-        p2 = pop[s4]
+    # Find two highest value in candidates fitness
+    best_candidate_fitness = max( candidate_fitness )
+    candidate_fitness.remove(best_candidate_fitness)
+    second_best_candidate_fitness = max( candidate_fitness )
 
+    # Two highest candidates becomes parents
+    for n in range(len(pop_fitness)):
+        if pop_fitness[n] == best_candidate_fitness:
+            p1 = pop[n]
+        if pop_fitness[n] == second_best_candidate_fitness:
+            p2 = pop[n]
+
+    # NOTE: Parent 1 is always better than p2
     return p1, p2
 
-def make_love(p1, p2):
+
+def apply_crossover(gene_1, gene_2, crossover_rate):
+    if 1 == np.random.choice([0, 1], p=[1.0 - crossover_rate, crossover_rate], size=1):
+        return gene_2
+    else:
+        return gene_1
+
+
+def make_love(p1, p2, crossover_rate):
 
     # Inherit from parent 1
     child = Specimen(Wht=p1.Wht, Wrtzt=p1.Wrtzt, W11=p1.W11, W12=p1.W12)
 
-    # Cross over gene from parent 2
-    child.Wht.x.fc  = p2.Wht.x.fc
-    child.Wht.y.z   = p2.Wht.y.z
-    child.Wht.z.fc  = p2.Wht.z.fc 
+    child.Wht.x.fc  = apply_crossover( p1.Wht.x.fc, p2.Wht.x.fc, crossover_rate )
+    child.Wht.x.z   = apply_crossover( p1.Wht.x.z, p2.Wht.x.z, crossover_rate )
+    child.Wht.y.fc  = apply_crossover( p1.Wht.y.fc, p2.Wht.y.fc, crossover_rate )
+    child.Wht.y.z   = apply_crossover( p1.Wht.y.z, p2.Wht.y.z, crossover_rate )
+    child.Wht.z.fc  = apply_crossover( p1.Wht.z.fc, p2.Wht.z.fc, crossover_rate ) 
+    child.Wht.z.z   = apply_crossover( p1.Wht.z.z, p2.Wht.z.z, crossover_rate ) 
 
-    child.Wrtzt.x.fc = p2.Wrtzt.x.fc
-    child.Wrtzt.z.fc = p2.Wrtzt.z.fc
+    child.Wrtzt.x.fc = apply_crossover( p1.Wrtzt.x.fc, p2.Wrtzt.x.fc, crossover_rate )
+    child.Wrtzt.y.fc = apply_crossover( p1.Wrtzt.y.fc, p2.Wrtzt.y.fc, crossover_rate )
+    child.Wrtzt.z.fc = apply_crossover( p1.Wrtzt.z.fc, p2.Wrtzt.z.fc, crossover_rate )
 
-    child.W12.roll.fc = p2.W12.roll.fc
-    child.W12.pitch.z = p2.W12.pitch.z
+    child.W12.roll.fc  = apply_crossover( p1.W12.roll.fc, p2.W12.roll.fc, crossover_rate )
+    child.W12.roll.z   = apply_crossover( p1.W12.roll.z, p2.W12.roll.z, crossover_rate )
+    child.W12.pitch.fc = apply_crossover( p1.W12.pitch.fc, p2.W12.pitch.fc, crossover_rate )
+    child.W12.pitch.z  = apply_crossover( p1.W12.pitch.z, p2.W12.pitch.z, crossover_rate )
 
-    child.W11.roll.fc = p2.W11.roll.fc
-    child.W11.yaw.fc = p2.W11.yaw.fc
+    child.W11.roll.fc  = apply_crossover( p1.W11.roll.fc, p2.W11.roll.fc, crossover_rate )
+    child.W11.pitch.fc = apply_crossover( p1.W11.pitch.fc, p2.W11.pitch.fc, crossover_rate )
+    child.W11.yaw.fc   = apply_crossover( p1.W11.yaw.fc, p2.W11.yaw.fc, crossover_rate )
 
     return child
 
@@ -495,8 +522,8 @@ def mutate_child(child, mutation_rate):
 
     # Wrtz
     child.Wrtzt.x.fc = mutate_child_gene( child.Wrtzt.x.fc, mutation_rate, WASHOUT_FILTER_FC_MIN_VALUE, WASHOUT_FILTER_FC_MAX_VALUE )
-    child.Wrtzt.y.fc = mutate_child_gene( child.Wrtzt.x.fc, mutation_rate, WASHOUT_FILTER_FC_MIN_VALUE, WASHOUT_FILTER_FC_MAX_VALUE )
-    child.Wrtzt.z.fc = mutate_child_gene( child.Wrtzt.x.fc, mutation_rate, WASHOUT_FILTER_FC_MIN_VALUE, WASHOUT_FILTER_FC_MAX_VALUE )
+    child.Wrtzt.y.fc = mutate_child_gene( child.Wrtzt.y.fc, mutation_rate, WASHOUT_FILTER_FC_MIN_VALUE, WASHOUT_FILTER_FC_MAX_VALUE )
+    child.Wrtzt.z.fc = mutate_child_gene( child.Wrtzt.z.fc, mutation_rate, WASHOUT_FILTER_FC_MIN_VALUE, WASHOUT_FILTER_FC_MAX_VALUE )
 
     # W12
     child.W12.roll.fc  = mutate_child_gene( child.W12.roll.fc, mutation_rate, WASHOUT_FILTER_FC_MIN_VALUE, WASHOUT_FILTER_FC_MAX_VALUE )
@@ -510,7 +537,7 @@ def mutate_child(child, mutation_rate):
     return child
 
 
-def make_new_generation(pop, pop_fitness, mutation_rate):
+def make_new_generation(pop, pop_fitness, mutation_rate, crossover_rate):
     new_pop = []
     working_pop = pop
 
@@ -521,7 +548,7 @@ def make_new_generation(pop, pop_fitness, mutation_rate):
         p1, p2 = select_parents(working_pop, pop_fitness)
         
         # Make a child
-        child = make_love(p1, p2)
+        child = make_love(p1, p2, crossover_rate)
 
         # Mutate child
         child = mutate_child(child, mutation_rate)
@@ -632,8 +659,9 @@ def generate_stimuli_signal():
 # ===============================================================================
 #       MAIN ENTRY
 # ===============================================================================
+
 if __name__ == "__main__":
-    
+
     # Clear console
     os.system("cls")
 
@@ -689,7 +717,7 @@ if __name__ == "__main__":
         # ===============================================================================
 
         # Make a new (BETTER) generation
-        pop = make_new_generation(pop, pop_fitness, MUTATION_RATE)
+        pop = make_new_generation(pop, pop_fitness, MUTATION_PROPABILITY, CROSSOVER_PROPABILITY)
 
 
 
@@ -709,16 +737,6 @@ if __name__ == "__main__":
         print("Execution time: %.0f ms" % (exe_time * 1e3 ))
         print("Evolution duration: %.2f sec\n" % evo_timer.time() )
        
-        """       
-        print("Best specimen:")
-        print_specimen_coefficient( elitsm_s_1 )
-
-        print("\nExecution time: %.0f ms" % (exe_time * 1e3 ))
-        print("Evolution duration: %.2f sec\n" % evo_timer.time() )
-
-        # Store previous overall population fit 
-        overall_pop_fit_prev = overall_pop_fit
-        """
 
     # Stop evolution timer
     evo_duration = evo_timer.stop()
@@ -747,10 +765,9 @@ if __name__ == "__main__":
     print("\nGA SETTINGS:")
     print("Number of generations: %s" % GENERATION_SIZE)
     print("Number of populations: %s" % POPULATION_SIZE)
-    print("Mutation rate: %s" % MUTATION_RATE)
+    print("Mutation rate: %s" % MUTATION_PROPABILITY)
     print("Mutation impact: %s" % MUTATION_IMPACT)
     print("Elithism number: %s" % ELITISM_NUM)
-    
 
 # ===============================================================================
 #       END OF FILE
