@@ -63,11 +63,11 @@ SAMPLE_NUM = int(( IDEAL_SAMPLE_FREQ * TIME_WINDOW ) + 1.0 )
 
 # Cutoff frequency limits
 WASHOUT_FILTER_FC_MIN_VALUE = 0.01
-WASHOUT_FILTER_FC_MAX_VALUE = 15.0
+WASHOUT_FILTER_FC_MAX_VALUE = 5.0
 
 # Damping factor limits
-WASHOUT_FILTER_Z_MIN_VALUE  = 0.1
-WASHOUT_FILTER_Z_MAX_VALUE  = 2.0
+WASHOUT_FILTER_Z_MIN_VALUE  = 0.05
+WASHOUT_FILTER_Z_MAX_VALUE  = 3.0
 
 
 # ==================================================
@@ -75,28 +75,27 @@ WASHOUT_FILTER_Z_MAX_VALUE  = 2.0
 # ==================================================
 
 # Population size
-# NOTE: Minimu of 4
-POPULATION_SIZE = 40
+POPULATION_SIZE = 20
 
 # Number of generations
-GENERATION_SIZE = 20
+GENERATION_SIZE = 50
 
 # Mutation propability
-MUTATION_PROPABILITY = 0.02
+MUTATION_PROPABILITY = 0.05
 
 # Mutation impact
 # NOTE: Percent of mutation impact on gene change 
 MUTATION_IMPACT = 0.05
 
 # TODO: implement elitism
-ELITISM_NUM = 0
+ELITISM_NUM = 2
 
 # Size of tournament
 # NOTE: Must not be smaller than population size
-TURNAMENT_SIZE = 10
+TURNAMENT_SIZE = 8
 
 # Crossover propability
-CROSSOVER_PROPABILITY = 0.5
+CROSSOVER_PROPABILITY = 0.25
 
 
 # ==================================================
@@ -491,8 +490,9 @@ def get_mutation_target(mutation_rate, size):
     
 
 def mutate_child_gene(gene, mutation_rate, low, high):
+
+    # Is gene being mutated?
     if 1 == np.random.choice([0, 1], p=[1.0 - mutation_rate, mutation_rate], size=1):
-        #return get_random_float(low, high, 1)
 
         # 50/50 if positive or negative affect of mutation
         if 1 == np.random.choice([0, 1], p=[0.5, 0.5], size=1):
@@ -526,8 +526,10 @@ def mutate_child(child, mutation_rate):
     child.Wrtzt.z.fc = mutate_child_gene( child.Wrtzt.z.fc, mutation_rate, WASHOUT_FILTER_FC_MIN_VALUE, WASHOUT_FILTER_FC_MAX_VALUE )
 
     # W12
-    child.W12.roll.fc  = mutate_child_gene( child.W12.roll.fc, mutation_rate, WASHOUT_FILTER_FC_MIN_VALUE, WASHOUT_FILTER_FC_MAX_VALUE )
-    child.W12.roll.z   = mutate_child_gene( child.W12.roll.z, mutation_rate, WASHOUT_FILTER_Z_MIN_VALUE, WASHOUT_FILTER_Z_MAX_VALUE )
+    child.W12.roll.fc   = mutate_child_gene( child.W12.roll.fc, mutation_rate, WASHOUT_FILTER_FC_MIN_VALUE, WASHOUT_FILTER_FC_MAX_VALUE )
+    child.W12.roll.z    = mutate_child_gene( child.W12.roll.z, mutation_rate, WASHOUT_FILTER_Z_MIN_VALUE, WASHOUT_FILTER_Z_MAX_VALUE )
+    child.W12.pitch.fc  = mutate_child_gene( child.W12.pitch.fc, mutation_rate, WASHOUT_FILTER_FC_MIN_VALUE, WASHOUT_FILTER_FC_MAX_VALUE )
+    child.W12.pitch.z   = mutate_child_gene( child.W12.pitch.z, mutation_rate, WASHOUT_FILTER_Z_MIN_VALUE, WASHOUT_FILTER_Z_MAX_VALUE )
 
     # W11
     child.W11.roll.fc  = mutate_child_gene( child.W11.roll.fc, mutation_rate, WASHOUT_FILTER_FC_MIN_VALUE, WASHOUT_FILTER_FC_MAX_VALUE )
@@ -537,15 +539,43 @@ def mutate_child(child, mutation_rate):
     return child
 
 
-def make_new_generation(pop, pop_fitness, mutation_rate, crossover_rate):
+def select_elite(pop, pop_fitness, elite_num):
+    elite_pop = []
+    pop_temp = []
+    pop_fit_temp = []
+
+    # Make a working copy
+    pop_temp = pop.copy()
+    pop_fit_temp = pop_fitness.copy()
+    
+    # Select elite numer of best specimen
+    for _ in range(elite_num):
+        max_fit = max(pop_fit_temp)
+        for idx, s in enumerate(pop_temp):
+            if pop_fit_temp[idx] == max_fit:
+                elite_pop.append(s)
+                pop_fit_temp.remove(pop_fit_temp[idx])
+                pop_temp.remove(s)
+                break
+
+    return elite_pop
+
+
+def make_new_generation(pop, pop_fitness, mutation_rate, crossover_rate, elite_num):
     new_pop = []
-    working_pop = pop
+
+    # Apply elitsm
+    elite_pop = select_elite(pop, pop_fitness, elite_num)
+
+    for p in elite_pop:
+        new_pop.append( p )
 
     # Generate new POPULATION SIZE number of childs
-    for s in range( len(pop) ):
+    for s in range( len(pop) - elite_num ):
+    #for s in range( len(pop) ):
 
         # Select parents & remove then from next selection cycle
-        p1, p2 = select_parents(working_pop, pop_fitness)
+        p1, p2 = select_parents(pop, pop_fitness)
         
         # Make a child
         child = make_love(p1, p2, crossover_rate)
@@ -555,9 +585,6 @@ def make_new_generation(pop, pop_fitness, mutation_rate, crossover_rate):
 
         # Add child to new generation of population
         new_pop.append(child)
-
-    # Apply elitsm
-    # TBD...
 
     return new_pop
 
@@ -662,6 +689,7 @@ def generate_stimuli_signal():
 
 if __name__ == "__main__":
 
+    
     # Clear console
     os.system("cls")
 
@@ -694,7 +722,6 @@ if __name__ == "__main__":
     gen_timer.start()
 
 
-
     # Loop thru generations
     for g in range(GENERATION_SIZE):
 
@@ -717,7 +744,7 @@ if __name__ == "__main__":
         # ===============================================================================
 
         # Make a new (BETTER) generation
-        pop = make_new_generation(pop, pop_fitness, MUTATION_PROPABILITY, CROSSOVER_PROPABILITY)
+        pop = make_new_generation(pop, pop_fitness, MUTATION_PROPABILITY, CROSSOVER_PROPABILITY, ELITISM_NUM)
 
 
 
@@ -730,12 +757,13 @@ if __name__ == "__main__":
 
         # Report progress
         if g > 0:
-            print("Generation progress (in fittness): %.2f\n" % ( pop_fitness_sum - pop_fitness_sum_prev ))
+            print("Overall evolution progress: %.2f %%" % (( pop_fitness_sum - first_pop_fitness_sum ) / 100.0 ))
+            print("Generation progress: %.2f %%\n" % (( pop_fitness_sum - pop_fitness_sum_prev ) / 100.0 ))
         pop_fitness_sum_prev = pop_fitness_sum
 
 
-        print("Execution time: %.0f ms" % (exe_time * 1e3 ))
-        print("Evolution duration: %.2f sec\n" % evo_timer.time() )
+        print("Execution time: %.0f sec" % exe_time )
+        print("Evolution duration: %.2f min\n" % ( evo_timer.time()/60.0 ))
        
 
     # Stop evolution timer
@@ -748,6 +776,7 @@ if __name__ == "__main__":
     #print("Best speciment fit: \n %s" % print_specimen_coefficient( best_speciment_fit ))
     print("First population fit: %.2f" % first_pop_fitness_sum)
     print("End population fit: %.2f" % pop_fitness_sum)
+    print("Overall evolution progress: %.2f %%" % (( pop_fitness_sum - first_pop_fitness_sum ) / 100.0 ))
     print("End score: %.2f\n" % ( pop_fitness_sum / POPULATION_SIZE ))
     #print("Best coefficients:\n -Wht = %s \n -Wrtzt= %s \n -W11 = %s\n -W12 = %s\n" % ( best_specimen.Wht, best_specimen.Wrtzt, best_specimen.W11, best_specimen.W12 ))
     print("Evolution total duration: %.2f sec\n" % evo_duration )    
@@ -765,9 +794,11 @@ if __name__ == "__main__":
     print("\nGA SETTINGS:")
     print("Number of generations: %s" % GENERATION_SIZE)
     print("Number of populations: %s" % POPULATION_SIZE)
-    print("Mutation rate: %s" % MUTATION_PROPABILITY)
+    print("Mutation propability: %s" % MUTATION_PROPABILITY)
     print("Mutation impact: %s" % MUTATION_IMPACT)
     print("Elithism number: %s" % ELITISM_NUM)
+    print("Crossover propability: %s" % CROSSOVER_PROPABILITY)
+    
 
 # ===============================================================================
 #       END OF FILE
