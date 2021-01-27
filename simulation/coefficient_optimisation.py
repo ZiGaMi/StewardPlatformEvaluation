@@ -41,7 +41,7 @@ IDEAL_SAMPLE_FREQ = 500.0
 ## Time window
 #
 # Unit: second
-TIME_WINDOW = 1
+TIME_WINDOW = 4
 
 ## Input signal shape
 INPUT_SIGNAL_FREQ = 0.1
@@ -75,17 +75,17 @@ WASHOUT_FILTER_Z_MAX_VALUE  = 3.0
 # ==================================================
 
 # Population size
-POPULATION_SIZE = 20
+POPULATION_SIZE = 40
 
 # Number of generations
-GENERATION_SIZE = 50
+GENERATION_SIZE = 100
 
 # Mutation propability
-MUTATION_PROPABILITY = 0.05
+MUTATION_PROPABILITY = 0.10
 
 # Mutation impact
 # NOTE: Percent of mutation impact on gene change 
-MUTATION_IMPACT = 0.05
+MUTATION_IMPACT = 0.20
 
 # TODO: implement elitism
 ELITISM_NUM = 2
@@ -95,7 +95,7 @@ ELITISM_NUM = 2
 TURNAMENT_SIZE = 8
 
 # Crossover propability
-CROSSOVER_PROPABILITY = 0.25
+CROSSOVER_PROPABILITY = 0.50
 
 
 # ==================================================
