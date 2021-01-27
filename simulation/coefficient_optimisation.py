@@ -41,7 +41,7 @@ IDEAL_SAMPLE_FREQ = 500.0
 ## Time window
 #
 # Unit: second
-TIME_WINDOW = 4
+TIME_WINDOW = 1
 
 ## Input signal shape
 INPUT_SIGNAL_FREQ = 0.1
@@ -75,24 +75,24 @@ WASHOUT_FILTER_Z_MAX_VALUE  = 3.0
 # ==================================================
 
 # Population size
-POPULATION_SIZE = 40
+POPULATION_SIZE = 10
 
 # Number of generations
-GENERATION_SIZE = 100
+GENERATION_SIZE = 10
 
 # Mutation propability
 MUTATION_PROPABILITY = 0.10
 
 # Mutation impact
 # NOTE: Percent of mutation impact on gene change 
-MUTATION_IMPACT = 0.20
+MUTATION_IMPACT = 0.10
 
 # TODO: implement elitism
 ELITISM_NUM = 2
 
 # Size of tournament
 # NOTE: Must not be smaller than population size
-TURNAMENT_SIZE = 8
+TURNAMENT_SIZE = 4
 
 # Crossover propability
 CROSSOVER_PROPABILITY = 0.50
@@ -589,7 +589,17 @@ def make_new_generation(pop, pop_fitness, mutation_rate, crossover_rate, elite_n
     return new_pop
 
 
+def find_best_specimen_and_fitness(pop, pop_fitness):
 
+    # Find best fintess
+    best_specimen_fitness = max(pop_fitness)
+    
+    # Find best specimen
+    for idx, s in enumerate(pop):
+        if best_specimen_fitness == pop_fitness[idx]:
+            best_specimen = s
+    
+    return best_specimen, best_specimen_fitness
 
 
 
@@ -716,6 +726,7 @@ if __name__ == "__main__":
     best_speciment_fit = 0
     first_fit = 0
     pop_fitness_sum_prev = 0
+    best_specimen_fitness_prev = 0
 
     # Start timer
     evo_timer.start()
@@ -736,9 +747,9 @@ if __name__ == "__main__":
        
         # Store first population fitness sum
         if g == 0:
+            first_best_specimen, first_best_specimen_fitness = find_best_specimen_and_fitness(pop, pop_fitness)
             first_pop_fitness_sum = pop_fitness_sum
 
-    
         # ===============================================================================
         #   2. REPRODUCTION
         # ===============================================================================
@@ -761,35 +772,45 @@ if __name__ == "__main__":
             print("Generation progress: %.2f %%\n" % (( pop_fitness_sum - pop_fitness_sum_prev ) / 100.0 ))
         pop_fitness_sum_prev = pop_fitness_sum
 
+        best_specimen, best_specimen_fitness = find_best_specimen_and_fitness(pop, pop_fitness)
+        print("Best specimen progress: %.2f" % ( best_specimen_fitness - best_specimen_fitness_prev ))
+        print("Best specimen progress: %.2f %%" % (( best_specimen_fitness - best_specimen_fitness_prev ) / 100.0 ))
+        best_specimen_fitness_prev = best_specimen_fitness
 
         print("Execution time: %.0f sec" % exe_time )
         print("Evolution duration: %.2f min\n" % ( evo_timer.time()/60.0 ))
        
-
     # Stop evolution timer
     evo_duration = evo_timer.stop()
 
+    # Find end best specimen
+    #end_best_specimen, end_best_specimen_fitness = find_best_specimen_and_fitness(pop, pop_fitness)
+
     # End report
     print("===============================================================================================")
-    print("     EVOLUTION FINISHED");
+    print("     EVOLUTION FINISHED")
     print("===============================================================================================")
     #print("Best speciment fit: \n %s" % print_specimen_coefficient( best_speciment_fit ))
     print("First population fit: %.2f" % first_pop_fitness_sum)
     print("End population fit: %.2f" % pop_fitness_sum)
     print("Overall evolution progress: %.2f %%" % (( pop_fitness_sum - first_pop_fitness_sum ) / 100.0 ))
+    
+    print("First best specimen fit: %.2f" % first_best_specimen_fitness)
+    print("End population best specimen fit: %.2f" % best_specimen_fitness)
+    print("Best specimen progress: %.2f %%" % (( best_specimen_fitness - first_best_specimen_fitness ) / 100.0 ))
+
     print("End score: %.2f\n" % ( pop_fitness_sum / POPULATION_SIZE ))
     #print("Best coefficients:\n -Wht = %s \n -Wrtzt= %s \n -W11 = %s\n -W12 = %s\n" % ( best_specimen.Wht, best_specimen.Wrtzt, best_specimen.W11, best_specimen.W12 ))
     print("Evolution total duration: %.2f sec\n" % evo_duration )    
 
-    max_fitness = 0
-    max_fitness_idx = 0
-    for idx, p in enumerate(pop_fitness):
-        if p > max_fitness:
-            max_fitness = p
-            max_fitness_idx = idx
+
     
-    print("Best specimen coefficients: ")
-    print_specimen_coefficient( pop[max_fitness_idx], raw=True )
+    print("First population best specimen coefficients: ")
+    print_specimen_coefficient( first_best_specimen, raw=True )
+
+    print("End population best specimen coefficients: ")
+    #print_specimen_coefficient( pop[max_fitness_idx], raw=True )
+    print_specimen_coefficient( best_specimen, raw=True )
 
     print("\nGA SETTINGS:")
     print("Number of generations: %s" % GENERATION_SIZE)

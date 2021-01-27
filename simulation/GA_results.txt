@@ -701,6 +701,126 @@ Mutation impact: 0.05
 Elithism number: 2
 Crossover propability: 0.2
 
+===============================================================================================
+     EVOLUTION FINISHED
+===============================================================================================
+First population fit: 682.68
+End population fit: 79.48
+Overall evolution progress: -6.03 %
+End score: 1.99
+
+Evolution total duration: 10422.24 sec
+
+Best specimen coefficients:
+Wht   =[[0.021018,0.228252],[0.019424,0.184371],[0.061239,0.086400]]
+Wrtzt =[0.047553,0.010192,0.012000]
+W12   =[[ 0.048067, 0.079626 ],[0.010000,0.082716]]
+W11   =[0.042071,0.042987,1.275424]
+
+GA SETTINGS:
+Number of generations: 100
+Number of populations: 40
+Mutation propability: 0.1
+Mutation impact: 0.2
+Elithism number: 2
+Crossover propability: 0.5
+
+===============================================================================================
+     EVOLUTION FINISHED   !!!!!!!!!!!!!!!! THISE ARE GOOD ONE !!!!!!!!!!!!!!!!
+===============================================================================================
+First population fit: 710.65
+End population fit: 132.22
+Overall evolution progress: -5.78 %
+End score: 3.31
+
+Evolution total duration: 10418.64 sec
+
+Best specimen coefficients:
+Wht   =[[0.020736,0.091729],[0.013235,0.073182],[0.010000,0.278398]]
+Wrtzt =[0.031702,0.015288,0.026418]
+W12   =[[ 0.059539, 0.072000 ],[0.292815,0.212582]]
+W11   =[0.026631,0.011520,0.027519]
+
+GA SETTINGS:
+Number of generations: 100
+Number of populations: 40
+Mutation propability: 0.1
+Mutation impact: 0.2
+Elithism number: 2
+Crossover propability: 0.5
+
+===============================================================================================
+     EVOLUTION FINISHED
+===============================================================================================
+First population fit: 628.54
+End population fit: 83.74
+Overall evolution progress: -5.45 %
+End score: 2.09
+
+Evolution total duration: 10415.63 sec
+
+Best specimen coefficients:
+Wht   =[[0.023373,0.139084],[0.096639,0.060000],[0.023888,0.058707]]
+Wrtzt =[0.014636,0.011520,0.010000]
+W12   =[[ 0.014051, 0.050000 ],[0.010000,0.067630]]
+W11   =[0.015881,0.012000,0.027368]
+
+GA SETTINGS:
+Number of generations: 100
+Number of populations: 40
+Mutation propability: 0.1
+Mutation impact: 0.2
+Elithism number: 2
+Crossover propability: 0.5
+
+===============================================================================================
+     EVOLUTION FINISHED
+===============================================================================================
+First population fit: 696.02
+End population fit: 95.74
+Overall evolution progress: -6.00 %
+End score: 2.39
+
+Evolution total duration: 10374.93 sec
+
+Best specimen coefficients:
+Wht   =[[0.019478,0.050000],[0.011059,0.050000],[0.028665,0.055296]]
+Wrtzt =[0.055973,0.017185,0.010000]
+W12   =[[ 0.038773, 0.105382 ],[0.012000,0.058707]]
+W11   =[0.014400,0.010000,0.046400]
+
+GA SETTINGS:
+Number of generations: 100
+Number of populations: 40
+Mutation propability: 0.1
+Mutation impact: 0.2
+Elithism number: 2
+Crossover propability: 0.5
+
+===============================================================================================
+     EVOLUTION FINISHED
+===============================================================================================
+First population fit: 668.70
+End population fit: 141.51
+Overall evolution progress: -5.27 %
+End score: 3.54
+
+Evolution total duration: 10404.06 sec
+
+Best specimen coefficients:
+Wht   =[[0.021134,0.060000],[0.013824,0.082944],[0.162048,0.274521]]
+Wrtzt =[0.052445,0.010000,0.010000]
+W12   =[[ 0.033797, 0.055296 ],[0.012000,0.143327]]
+W11   =[0.047161,0.019110,0.039627]
+
+GA SETTINGS:
+Number of generations: 100
+Number of populations: 40
+Mutation propability: 0.1
+Mutation impact: 0.2
+Elithism number: 2
+Crossover propability: 0.5
+
 
 
 
