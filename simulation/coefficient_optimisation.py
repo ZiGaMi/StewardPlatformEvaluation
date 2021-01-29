@@ -78,14 +78,14 @@ WASHOUT_FILTER_Z_MAX_VALUE  = 3.0
 POPULATION_SIZE = 10
 
 # Number of generations
-GENERATION_SIZE = 10
+GENERATION_SIZE = 20
 
 # Mutation propability
 MUTATION_PROPABILITY = 0.10
 
 # Mutation impact
 # NOTE: Percent of mutation impact on gene change 
-MUTATION_IMPACT = 0.10
+MUTATION_IMPACT = 0.30
 
 # TODO: implement elitism
 ELITISM_NUM = 2
@@ -95,7 +95,7 @@ ELITISM_NUM = 2
 TURNAMENT_SIZE = 4
 
 # Crossover propability
-CROSSOVER_PROPABILITY = 0.50
+CROSSOVER_PROPABILITY = 0.75
 
 
 # ==================================================
@@ -327,12 +327,12 @@ def print_specimen_coefficient(specimen, raw=False):
         print("Wht   =[ x:[fc:%.3f, zeta:%.3f] y:[fc:%.3f, zeta:%.3f] z:[fc:%.3f, zeta:%.3f] ]" % ( coef[0], coef[1], coef[2], coef[3], coef[4], coef[5] ))
         print("Wrtzt =[ x:[fc:%.3f] y:[fc:%.3f] z:[fc:%.3f] ]" % ( coef[6], coef[7], coef[8] ))
         print("W12   =[ roll:[fc:%.3f, zeta:%.3f] pitch:[fc:%.3f, zeta:%.3f] ]" % ( coef[9], coef[10], coef[11], coef[12] ))
-        print("W11   =[ roll:[fc:%.3f] pitch:[fc:%.3f] yaw:[fc:%.3f] ]" % ( coef[13], coef[14], coef[15] ))
+        print("W11   =[ roll:[fc:%.3f] pitch:[fc:%.3f] yaw:[fc:%.3f] ]\n" % ( coef[13], coef[14], coef[15] ))
     else:
         print("Wht   =[[%.6f,%.6f],[%.6f,%.6f],[%.6f,%.6f]]"    % ( coef[0], coef[1], coef[2], coef[3], coef[4], coef[5] ))
         print("Wrtzt =[%.6f,%.6f,%.6f]"                         % ( coef[6], coef[7], coef[8] ))
         print("W12   =[[ %.6f, %.6f ],[%.6f,%.6f]]"             % ( coef[9], coef[10], coef[11], coef[12] ))
-        print("W11   =[%.6f,%.6f,%.6f]"                         % ( coef[13], coef[14], coef[15] ))
+        print("W11   =[%.6f,%.6f,%.6f]\n"                         % ( coef[13], coef[14], coef[15] ))
 
 # ===============================================================================
 # @brief:   Calculate fitness of system module based on sensation error
@@ -394,7 +394,9 @@ def calculate_fitness(specimen, fs, stim, stim_size, route_opt):
         fitness += ( err_a_rms[i] + err_w_rms[i] )
 
     # Higher system model error lower the fitness
-    fitness = 1 / fitness
+    fitness = ( 1 / fitness )
+
+    del(sys_model)
 
     return fitness
 
@@ -429,6 +431,8 @@ def select_parents(pop, pop_fitness):
     # Pick turnament candidates
     turnament_candidates_idx = random.sample(range(0, len(pop)), TURNAMENT_SIZE)
 
+    print(turnament_candidates_idx)
+
     # Collect candidate fitness
     candidate_fitness = []
     for n in range(TURNAMENT_SIZE):
@@ -457,26 +461,56 @@ def apply_crossover(gene_1, gene_2, crossover_rate):
         return gene_1
 
 
+
 def make_love(p1, p2, crossover_rate):
 
     # Inherit from parent 1
     child = Specimen(Wht=p1.Wht, Wrtzt=p1.Wrtzt, W11=p1.W11, W12=p1.W12)
 
+    """
     child.Wht.x.fc  = apply_crossover( p1.Wht.x.fc, p2.Wht.x.fc, crossover_rate )
     child.Wht.x.z   = apply_crossover( p1.Wht.x.z, p2.Wht.x.z, crossover_rate )
     child.Wht.y.fc  = apply_crossover( p1.Wht.y.fc, p2.Wht.y.fc, crossover_rate )
     child.Wht.y.z   = apply_crossover( p1.Wht.y.z, p2.Wht.y.z, crossover_rate )
     child.Wht.z.fc  = apply_crossover( p1.Wht.z.fc, p2.Wht.z.fc, crossover_rate ) 
     child.Wht.z.z   = apply_crossover( p1.Wht.z.z, p2.Wht.z.z, crossover_rate ) 
+    """
+
+    # NOTE: COUPLED GENES
+    if 1 == np.random.choice([0, 1], p=[1.0 - crossover_rate, crossover_rate], size=1):
+        child.Wht.x.fc = p2.Wht.x.fc
+        child.Wht.x.z  = p2.Wht.x.z
+
+    if 1 == np.random.choice([0, 1], p=[1.0 - crossover_rate, crossover_rate], size=1):
+        child.Wht.y.fc = p2.Wht.y.fc
+        child.Wht.y.z  = p2.Wht.y.z
+
+    if 1 == np.random.choice([0, 1], p=[1.0 - crossover_rate, crossover_rate], size=1):
+        child.Wht.z.fc = p2.Wht.z.fc
+        child.Wht.z.z  = p2.Wht.z.z
+    
+
 
     child.Wrtzt.x.fc = apply_crossover( p1.Wrtzt.x.fc, p2.Wrtzt.x.fc, crossover_rate )
     child.Wrtzt.y.fc = apply_crossover( p1.Wrtzt.y.fc, p2.Wrtzt.y.fc, crossover_rate )
     child.Wrtzt.z.fc = apply_crossover( p1.Wrtzt.z.fc, p2.Wrtzt.z.fc, crossover_rate )
 
+    """
     child.W12.roll.fc  = apply_crossover( p1.W12.roll.fc, p2.W12.roll.fc, crossover_rate )
     child.W12.roll.z   = apply_crossover( p1.W12.roll.z, p2.W12.roll.z, crossover_rate )
     child.W12.pitch.fc = apply_crossover( p1.W12.pitch.fc, p2.W12.pitch.fc, crossover_rate )
     child.W12.pitch.z  = apply_crossover( p1.W12.pitch.z, p2.W12.pitch.z, crossover_rate )
+    """
+
+    # COUPLED GENES
+    if 1 == np.random.choice([0, 1], p=[1.0 - crossover_rate, crossover_rate], size=1):
+        child.W12.roll.fc = p2.W12.roll.fc
+        child.W12.roll.z = p2.W12.roll.z
+
+    if 1 == np.random.choice([0, 1], p=[1.0 - crossover_rate, crossover_rate], size=1):
+        child.W12.pitch.fc = p2.W12.pitch.fc
+        child.W12.pitch.z  = p2.W12.pitch.z
+
 
     child.W11.roll.fc  = apply_crossover( p1.W11.roll.fc, p2.W11.roll.fc, crossover_rate )
     child.W11.pitch.fc = apply_crossover( p1.W11.pitch.fc, p2.W11.pitch.fc, crossover_rate )
@@ -539,40 +573,86 @@ def mutate_child(child, mutation_rate):
     return child
 
 
+def find_best_specimen_and_fitness(pop, pop_fitness):
+
+    # Find best fintess
+    _best_specimen_fitness = max(pop_fitness)
+    
+    # Find best specimen
+    for idx, s in enumerate(pop):
+        if _best_specimen_fitness == pop_fitness[idx]:
+            _best_specimen = s
+    
+    return _best_specimen, _best_specimen_fitness
+
+
 def select_elite(pop, pop_fitness, elite_num):
-    elite_pop = []
+    _elite_pop = []
     pop_temp = []
     pop_fit_temp = []
 
     # Make a working copy
     pop_temp = pop.copy()
     pop_fit_temp = pop_fitness.copy()
+
+
+    print("Elite selection fitness: %s" % ["%.2f" % f for f in pop_fit_temp])
     
     # Select elite numer of best specimen
-    for _ in range(elite_num):
-        max_fit = max(pop_fit_temp)
-        for idx, s in enumerate(pop_temp):
-            if pop_fit_temp[idx] == max_fit:
-                elite_pop.append(s)
-                pop_fit_temp.remove(pop_fit_temp[idx])
-                pop_temp.remove(s)
-                break
+    for n in range(elite_num):
+        
+        # Find best specimen
+        _best_specimen, _best_specimen_fitness = find_best_specimen_and_fitness(pop_temp, pop_fit_temp)
 
-    return elite_pop
+        # Add to elite
+        _elite_pop.append( _best_specimen )
+
+        print("Elite fit: %.3f" %   _best_specimen_fitness)
+
+        # Remove from search list
+        pop_temp.remove( _best_specimen )
+        pop_fit_temp.remove( _best_specimen_fitness )
+
+
+    return _elite_pop
 
 
 def make_new_generation(pop, pop_fitness, mutation_rate, crossover_rate, elite_num):
-    new_pop = []
+    
+    """
+    
+
+    pop_temp = pop.copy()
+    pop_fitness_temp = pop_fitness.copy()
+
+    print("Making new generation...")
+    """
+
+    _new_pop = [] 
+    #_elite_pop = []
+    global _elite_pop
+    _elite_pop = []
 
     # Apply elitsm
-    elite_pop = select_elite(pop, pop_fitness, elite_num)
+    _elite_pop = select_elite(pop, pop_fitness, elite_num)
 
-    for p in elite_pop:
-        new_pop.append( p )
+    print("Elite coef:")
+    print_specimen_coefficient( _elite_pop[0] )
+    print_specimen_coefficient( _elite_pop[1] )
+
+    #_new_pop.append( _elite_pop[0] )
+    #_new_pop.append( _elite_pop[1] )
+
+    print("_new_pop len: %s" % len(_new_pop))
+
+    print("xfc/z:%.3f/%.3f" % ( _elite_pop[0].Wht.x.fc, _elite_pop[0].Wht.x.z ))
 
     # Generate new POPULATION SIZE number of childs
-    for s in range( len(pop) - elite_num ):
-    #for s in range( len(pop) ):
+    #for s in range( len(pop) - elite_num ):
+    #for s in range( POPULATION_SIZE - elite_num ):
+    
+    
+    for s in range( len(pop) ):
 
         # Select parents & remove then from next selection cycle
         p1, p2 = select_parents(pop, pop_fitness)
@@ -584,22 +664,36 @@ def make_new_generation(pop, pop_fitness, mutation_rate, crossover_rate, elite_n
         child = mutate_child(child, mutation_rate)
 
         # Add child to new generation of population
-        new_pop.append(child)
+        _new_pop.append(child)
 
-    return new_pop
-
-
-def find_best_specimen_and_fitness(pop, pop_fitness):
-
-    # Find best fintess
-    best_specimen_fitness = max(pop_fitness)
+    print("_new_pop len: %s" % len(_new_pop))
     
-    # Find best specimen
-    for idx, s in enumerate(pop):
-        if best_specimen_fitness == pop_fitness[idx]:
-            best_specimen = s
+
+    """
+    for p in elite_pop:
+        print("added elite...")
+        _new_pop.append( p )
+    """
+    print("Elite coef 2:")
+    print_specimen_coefficient( _elite_pop[0])
+    _new_pop[0] = _elite_pop[0]
+    _new_pop[1] = _elite_pop[1]
+        
     
-    return best_specimen, best_specimen_fitness
+
+    print("In function: ")
+    print_specimen_coefficient( _new_pop[0])
+
+    return _new_pop
+    
+
+
+def print_pop_fitness_ratio(pop_fitness, pop_fitness_sum):
+    fitness_ratio = []
+    for p_fit in pop_fitness:
+        fitness_ratio.append( p_fit / pop_fitness_sum )
+    print("f/f_avg: %s" % ["%.3f" % r for r in fitness_ratio])
+
 
 
 
@@ -732,6 +826,7 @@ if __name__ == "__main__":
     evo_timer.start()
     gen_timer.start()
 
+    pop_fitness = []
 
     # Loop thru generations
     for g in range(GENERATION_SIZE):
@@ -740,14 +835,21 @@ if __name__ == "__main__":
         print("     GENERATION #%s" % g);
         print("===============================================================================================")
 
+        print("Old fitness: %s" % ["%.3f" % p for p in pop_fitness])
+
         # ===============================================================================
         #   1. CALCULATE POPULATION FITNESS
         # ===============================================================================
         pop_fitness, pop_fitness_sum = calculate_population_fitness( pop, POPULATION_SIZE, SAMPLE_FREQ, stim_signal, stim_size, INPUT_SIGNAL_ROUTE )
-       
+
+        # Find best speciment and its fitness
+        best_specimen, best_specimen_fitness = find_best_specimen_and_fitness(pop, pop_fitness)
+
+
         # Store first population fitness sum
         if g == 0:
-            first_best_specimen, first_best_specimen_fitness = find_best_specimen_and_fitness(pop, pop_fitness)
+            first_best_specimen = best_specimen 
+            first_best_specimen_fitness = best_specimen_fitness
             first_pop_fitness_sum = pop_fitness_sum
 
         # ===============================================================================
@@ -757,7 +859,14 @@ if __name__ == "__main__":
         # Make a new (BETTER) generation
         pop = make_new_generation(pop, pop_fitness, MUTATION_PROPABILITY, CROSSOVER_PROPABILITY, ELITISM_NUM)
 
+        print("Return: ")
+        print_specimen_coefficient( pop[0])
+        print_specimen_coefficient( pop[1])
 
+        print("Best pop[0] fit: %.3f" % calculate_fitness( pop[0], SAMPLE_FREQ, stim_signal, stim_size, INPUT_SIGNAL_ROUTE ))
+        print("Best pop[1] fit: %.3f" % calculate_fitness( pop[1], SAMPLE_FREQ, stim_signal, stim_size, INPUT_SIGNAL_ROUTE ))
+        #print("Best pop[-3] fit: %.3f" % calculate_fitness( pop[-3], SAMPLE_FREQ, stim_signal, stim_size, INPUT_SIGNAL_ROUTE ))
+        #print("Best pop[-4] fit: %.3f" % calculate_fitness( pop[-4], SAMPLE_FREQ, stim_signal, stim_size, INPUT_SIGNAL_ROUTE ))
 
         # ===============================================================================
         #   Intermediate reports of evolution
@@ -766,16 +875,28 @@ if __name__ == "__main__":
         # Restart timer
         exe_time = gen_timer.restart()
 
+
+
+
+
+
         # Report progress
         if g > 0:
             print("Overall evolution progress: %.2f %%" % (( pop_fitness_sum - first_pop_fitness_sum ) / 100.0 ))
             print("Generation progress: %.2f %%\n" % (( pop_fitness_sum - pop_fitness_sum_prev ) / 100.0 ))
         pop_fitness_sum_prev = pop_fitness_sum
 
-        best_specimen, best_specimen_fitness = find_best_specimen_and_fitness(pop, pop_fitness)
+        
         print("Best specimen progress: %.2f" % ( best_specimen_fitness - best_specimen_fitness_prev ))
-        print("Best specimen progress: %.2f %%" % (( best_specimen_fitness - best_specimen_fitness_prev ) / 100.0 ))
+        print("Best specimen progress: %.3f %%" % (( best_specimen_fitness - best_specimen_fitness_prev ) / 100.0 ))
         best_specimen_fitness_prev = best_specimen_fitness
+        print("f_best/f_avg: %.3f" % ( best_specimen_fitness / ( pop_fitness_sum / POPULATION_SIZE )))
+
+        print_specimen_coefficient( best_specimen, raw=True )
+
+        print("")
+        print_pop_fitness_ratio(pop_fitness, pop_fitness_sum)
+        print("Fitness: %s" % ["%.3f" % p for p in pop_fitness])
 
         print("Execution time: %.0f sec" % exe_time )
         print("Evolution duration: %.2f min\n" % ( evo_timer.time()/60.0 ))
@@ -797,7 +918,7 @@ if __name__ == "__main__":
     
     print("First best specimen fit: %.2f" % first_best_specimen_fitness)
     print("End population best specimen fit: %.2f" % best_specimen_fitness)
-    print("Best specimen progress: %.2f %%" % (( best_specimen_fitness - first_best_specimen_fitness ) / 100.0 ))
+    print("Best specimen progress: %.3f %%" % (( best_specimen_fitness - first_best_specimen_fitness ) / 100.0 ))
 
     print("End score: %.2f\n" % ( pop_fitness_sum / POPULATION_SIZE ))
     #print("Best coefficients:\n -Wht = %s \n -Wrtzt= %s \n -W11 = %s\n -W12 = %s\n" % ( best_specimen.Wht, best_specimen.Wrtzt, best_specimen.W11, best_specimen.W12 ))
