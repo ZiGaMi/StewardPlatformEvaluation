@@ -41,8 +41,8 @@ IDEAL_SAMPLE_FREQ = 500.0
 TIME_WINDOW = 4
 
 ## Input signal shape
-INPUT_SIGNAL_FREQ = 0.1
-INPUT_SIGNAL_AMPLITUDE = 2/4
+INPUT_SIGNAL_FREQ = 0.2
+INPUT_SIGNAL_AMPLITUDE = 3/4
 INPUT_SIGNAL_OFFSET = INPUT_SIGNAL_AMPLITUDE
 INPUT_SIGNAL_PHASE = -0.25
 
@@ -74,29 +74,10 @@ WASHOUT_HPF_WHT_Z_Y   = .7071
 WASHOUT_HPF_WHT_FC_Z  = 1.0
 WASHOUT_HPF_WHT_Z_Z   = .7071
 
-"""
-WASHOUT_HPF_WHT_COEFFICIENT = [[ WASHOUT_HPF_WHT_FC_X, WASHOUT_HPF_WHT_Z_X ],
-                               [ WASHOUT_HPF_WHT_FC_Y, WASHOUT_HPF_WHT_Z_Y ],
-                               [ WASHOUT_HPF_WHT_FC_Z, WASHOUT_HPF_WHT_Z_Z ]]
-"""
-
-#WASHOUT_HPF_WHT_COEFFICIENT = [[0.1818517315469727, 1.6658555217915607], [3.7644436236220966, 0.9592474156536112], [4.211664721651869, 1.2597292848797679]]
-#WASHOUT_HPF_WHT_COEFFICIENT = [[0.009120228958275987, 1.2945075892594191], [2.153698323905298, 1.46631411645193], [2.0060593215174505, 1.024394374716762]]
-WASHOUT_HPF_WHT_COEFFICIENT = [[1.465157,0.328788],[0.726015,0.649352],[7.415771,0.226052]]
-
-
-
-
 # HPF Wrtzt 1st order filter
 WASHOUT_HPF_WRTZT_FC_X  = 10.0
 WASHOUT_HPF_WRTZT_FC_Y  = 10.0
 WASHOUT_HPF_WRTZT_FC_Z  = 1.0
-"""
-WASHOUT_HPF_WRTZT_COEFFICIENT = [ WASHOUT_HPF_WRTZT_FC_X, WASHOUT_HPF_WRTZT_FC_Y, WASHOUT_HPF_WRTZT_FC_Z ]
-"""
-#WASHOUT_HPF_WRTZT_COEFFICIENT = [0.2545029976670779, 2.8442062080025856, 2.401978908439502]
-#WASHOUT_HPF_WRTZT_COEFFICIENT = [0.21748501713566787, 0.4709657969565918, 2.706856123628832]
-#WASHOUT_HPF_WRTZT_COEFFICIENT =[10.546875,10.546875,10.546875]
 
 # =====================================================
 ## COORDINATION CHANNEL SETTINGS
@@ -107,13 +88,6 @@ WASHOUT_LPF_W12_Z_ROLL      = .1
 WASHOUT_LPF_W12_FC_PITCH    = 10.0
 WASHOUT_LPF_W12_Z_PITCH     = 1.0
 
-"""
-WASHOUT_LPF_W12_COEFFICIENT = [[ WASHOUT_LPF_W12_FC_ROLL, WASHOUT_LPF_W12_Z_ROLL ],
-                               [ WASHOUT_LPF_W12_FC_PITCH, WASHOUT_LPF_W12_Z_PITCH ]]
-"""
-#WASHOUT_LPF_W12_COEFFICIENT = [[1.711391372724243, 0.08317620530179735], [2.3209657645952797, 0.4752976390706094]]
-#WASHOUT_LPF_W12_COEFFICIENT = [[1.7156185040589476, 1.8751990632010231], [1.4626074317487352, 1.498262929131011]]
-#WASHOUT_LPF_W12_COEFFICIENT = [[ 1.877117, 0.489373 ],[8.250893,0.626788]]
 
 # =====================================================
 ## ROTATION CHANNEL SETTINGS
@@ -123,15 +97,14 @@ WASHOUT_HPF_W11_FC_ROLL     = 1.0
 WASHOUT_HPF_W11_FC_PITCH    = 1.0
 WASHOUT_HPF_W11_FC_YAW      = 1.0
 
-#WASHOUT_HPF_W11_COEFFICIENT = [3.682009,1.921223,1.792531]
 
 
 ###########################################################################################
 ## HERE COPY COEFFICIENT FROM GA RESULTS 
-Wht   =[[3.559570,0.427148],[1.299922,2.000000],[2.236907,0.373135]]
-Wrtzt =[0.214494,0.889575,0.571982]
-W12   =[[ 0.334804, 0.250000 ],[10.259537,0.681643]]
-W11   =[3.174604,0.115321,15.000000]
+Wht   =[[0.019124,0.662618],[3.750000,1.687500],[4.687500,1.114727]]
+Wrtzt =[0.312278,2.471924,1.248115]
+W12   =[[ 0.737756, 0.519306 ],[0.100175,1.582031]]
+W11   =[4.124729,0.010599,0.082091]
 ###########################################################################################
 
 WASHOUT_HPF_WHT_COEFFICIENT = Wht
@@ -603,8 +576,9 @@ if __name__ == "__main__":
     
     # Generate stimuli signals
     for n in range(SAMPLE_NUM):
-        #_x[n] = ( _fg.generate( _time[n] ))
+        _x[n] = ( _fg.generate( _time[n] ))
 
+        """
         # Some custom signal
         CUSTOM_SIG_MAX = 1
 
@@ -630,6 +604,7 @@ if __name__ == "__main__":
         
         else:
             _x[n] = 0
+        """
 
 
     # =====================================================================
@@ -765,7 +740,7 @@ if __name__ == "__main__":
     ## ==============================================================================================
     # Rotation motion plots
     ## ==============================================================================================
-    fig, ax = plt.subplots(4, 1, sharex=True)
+    fig, ax = plt.subplots(3, 1, sharex=True)
     fig.suptitle( PLOT_MAIN_TITLE , fontsize=PLOT_MAIN_TITLE_SIZE )
 
     # Subplot 0
@@ -776,26 +751,31 @@ if __name__ == "__main__":
     ax[0].set_ylabel('Acceleration [m/s^2],\nAngular rate [rad/s]', fontsize=PLOT_AXIS_LABEL_SIZE)
         
     # Subplot 1
-    system_model_plot_signals( ax[1], _d_time, _y_d_a_sens_test, _y_d_w_sens_test )
+    #system_model_plot_signals( ax[1], _d_time, _y_d_a_sens_test, _y_d_w_sens_test )
+    #system_model_plot_signals( ax[2], _d_time, _y_d_a_wash_sens, _y_d_w_wash_sens )
+    ax[1].plot( _d_time, _y_d_a_sens_test[0], "--w", label="ref" )
+    ax[1].plot( _d_time, _y_d_a_wash_sens[0], "y", label="wash" )
     ax[1].set_title("Vastibular system - reference feeling", fontsize=PLOT_TITLE_SIZE)
     ax[1].grid(alpha=0.25)
     ax[1].legend(loc="upper right")
     ax[1].set_ylabel('Acceleration [m/s^2],\nAngular rate [rad/s]', fontsize=PLOT_AXIS_LABEL_SIZE)
 
     # Subplot 2
+    """
     system_model_plot_signals( ax[2], _d_time, _y_d_a_wash_sens, _y_d_w_wash_sens )
     ax[2].set_title("Washout - actual feeling", fontsize=PLOT_TITLE_SIZE)
     ax[2].grid(alpha=0.25)
     ax[2].legend(loc="upper right")
     ax[2].set_ylabel('Acceleration [m/s^2],\nAngular rate [rad/s]', fontsize=PLOT_AXIS_LABEL_SIZE)
-
-    # Subplot 3
-    system_model_plot_signals( ax[3], _d_time, _y_d_a_sens_err, _y_d_w_sens_err )
-    ax[3].set_title("Error in sensation", fontsize=PLOT_TITLE_SIZE)
-    ax[3].grid(alpha=0.25)
-    ax[3].legend(loc="upper right")
-    ax[3].set_ylabel('Acceleration [m/s^2],\nAngular rate [rad/s]', fontsize=PLOT_AXIS_LABEL_SIZE)
-    ax[3].set_xlabel('Time [s]', fontsize=PLOT_AXIS_LABEL_SIZE)
+    """
+    
+    # Subplot 2
+    system_model_plot_signals( ax[2], _d_time, _y_d_a_sens_err, _y_d_w_sens_err )
+    ax[2].set_title("Error in sensation", fontsize=PLOT_TITLE_SIZE)
+    ax[2].grid(alpha=0.25)
+    ax[2].legend(loc="upper right")
+    ax[2].set_ylabel('Acceleration [m/s^2],\nAngular rate [rad/s]', fontsize=PLOT_AXIS_LABEL_SIZE)
+    ax[2].set_xlabel('Time [s]', fontsize=PLOT_AXIS_LABEL_SIZE)
 
     plt.subplots_adjust(left=PLOT_ADJUST_LEFT, right=PLOT_ADJUST_RIGHT, top=PLOT_ADJUST_TOP, bottom=PLOT_ADJUST_BOTTOM)
     plt.show()

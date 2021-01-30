@@ -42,7 +42,7 @@ IDEAL_SAMPLE_FREQ = 500.0
 ## Time window
 #
 # Unit: second
-TIME_WINDOW = 1
+TIME_WINDOW = 4
 
 ## Input signal shape
 INPUT_SIGNAL_FREQ = 0.1
@@ -76,24 +76,24 @@ WASHOUT_FILTER_Z_MAX_VALUE  = 3.0
 # ==================================================
 
 # Population size
-POPULATION_SIZE = 10
+POPULATION_SIZE = 20
 
 # Number of generations
-GENERATION_SIZE = 20
+GENERATION_SIZE = 50
 
 # Mutation propability
 MUTATION_PROPABILITY = 0.50
 
 # Mutation impact
 # NOTE: Percent of mutation impact on gene change 
-MUTATION_IMPACT = 0.05
+MUTATION_IMPACT = 0.25
 
 # Number of elite population
 ELITISM_NUM = 2
 
 # Size of tournament
 # NOTE: Must not be smaller than population size
-TURNAMENT_SIZE = 8
+TURNAMENT_SIZE = 4
 
 # Crossover propability
 CROSSOVER_PROPABILITY = 0.50
@@ -806,19 +806,19 @@ if __name__ == "__main__":
     POPULATION_ZERO_INJECTION_NUM = 2
 
     # Initial good example
-    Wht   =[[0.016496,0.042655],[0.013504,0.063655],[0.019051,0.063655]]
-    Wrtzt =[0.005404,0.008660,0.135590]
-    W12   =[[ 0.027772, 0.198342 ],[0.030232,0.311606]]
-    W11   =[0.014108,0.040818,0.023847]
+    Wht   =[[0.029012,0.548982],[4.336511,2.741114],[3.295898,1.924075]]
+    Wrtzt =[0.505320,2.812500,1.211799]
+    W12   =[[ 5.000000, 0.128230 ],[0.110661,2.828163]]
+    W11   =[1.640331,0.135278,0.295195]
     
     # Add speciment to popolation
     pop.append( generate_specimen(Wht, Wrtzt, W12, W11 ))
 
     # Initial good example
-    Wht   =[[0.015000,0.037500],[0.015000,0.084375],[0.010824,0.037500]]
-    Wrtzt =[0.010000,0.007500,0.324367]
-    W12   =[[ 0.032473, 0.189845 ],[0.113906,0.427149]]
-    W11   =[0.022500,0.008438,0.024027]
+    Wht   =[[0.029012,0.548982],[4.336511,2.741114],[3.295898,1.924075]]
+    Wrtzt =[0.505320,2.812500,1.211799]
+    W12   =[[ 5.000000, 0.128230 ],[0.110661,2.828163]]
+    W11   =[1.640331,0.135278,0.295195]
 
     # Add speciment to population
     pop.append( generate_specimen(Wht, Wrtzt, W12, W11 ))
