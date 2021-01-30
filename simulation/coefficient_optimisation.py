@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import time
 import random
+import copy
 
 from filters.filter_utils import FunctionGenerator
 from system_model import SystemModel
@@ -431,7 +432,7 @@ def select_parents(pop, pop_fitness):
     # Pick turnament candidates
     turnament_candidates_idx = random.sample(range(0, len(pop)), TURNAMENT_SIZE)
 
-    print(turnament_candidates_idx)
+    #print(turnament_candidates_idx)
 
     # Collect candidate fitness
     candidate_fitness = []
@@ -592,9 +593,8 @@ def select_elite(pop, pop_fitness, elite_num):
     pop_fit_temp = []
 
     # Make a working copy
-    pop_temp = pop.copy()
-    pop_fit_temp = pop_fitness.copy()
-
+    pop_temp = copy.deepcopy( pop )
+    pop_fit_temp = copy.deepcopy( pop_fitness )
 
     print("Elite selection fitness: %s" % ["%.2f" % f for f in pop_fit_temp])
     
@@ -618,41 +618,16 @@ def select_elite(pop, pop_fitness, elite_num):
 
 
 def make_new_generation(pop, pop_fitness, mutation_rate, crossover_rate, elite_num):
-    
-    """
-    
-
-    pop_temp = pop.copy()
-    pop_fitness_temp = pop_fitness.copy()
-
-    print("Making new generation...")
-    """
-
     _new_pop = [] 
-    #_elite_pop = []
-    global _elite_pop
-    _elite_pop = []
 
     # Apply elitsm
     _elite_pop = select_elite(pop, pop_fitness, elite_num)
 
-    print("Elite coef:")
-    print_specimen_coefficient( _elite_pop[0] )
-    print_specimen_coefficient( _elite_pop[1] )
-
-    #_new_pop.append( _elite_pop[0] )
-    #_new_pop.append( _elite_pop[1] )
-
-    print("_new_pop len: %s" % len(_new_pop))
-
-    print("xfc/z:%.3f/%.3f" % ( _elite_pop[0].Wht.x.fc, _elite_pop[0].Wht.x.z ))
+    for e in _elite_pop:
+        _new_pop.append( e )
 
     # Generate new POPULATION SIZE number of childs
-    #for s in range( len(pop) - elite_num ):
-    #for s in range( POPULATION_SIZE - elite_num ):
-    
-    
-    for s in range( len(pop) ):
+    for s in range( POPULATION_SIZE - elite_num ):
 
         # Select parents & remove then from next selection cycle
         p1, p2 = select_parents(pop, pop_fitness)
@@ -665,25 +640,7 @@ def make_new_generation(pop, pop_fitness, mutation_rate, crossover_rate, elite_n
 
         # Add child to new generation of population
         _new_pop.append(child)
-
-    print("_new_pop len: %s" % len(_new_pop))
-    
-
-    """
-    for p in elite_pop:
-        print("added elite...")
-        _new_pop.append( p )
-    """
-    print("Elite coef 2:")
-    print_specimen_coefficient( _elite_pop[0])
-    _new_pop[0] = _elite_pop[0]
-    _new_pop[1] = _elite_pop[1]
         
-    
-
-    print("In function: ")
-    print_specimen_coefficient( _new_pop[0])
-
     return _new_pop
     
 
@@ -834,8 +791,6 @@ if __name__ == "__main__":
         print("===============================================================================================")
         print("     GENERATION #%s" % g);
         print("===============================================================================================")
-
-        print("Old fitness: %s" % ["%.3f" % p for p in pop_fitness])
 
         # ===============================================================================
         #   1. CALCULATE POPULATION FITNESS
