@@ -63,11 +63,11 @@ SAMPLE_NUM = int(( IDEAL_SAMPLE_FREQ * TIME_WINDOW ) + 1.0 )
 # ==================================================
 
 # Cutoff frequency limits
-WASHOUT_FILTER_FC_MIN_VALUE = 0.01
+WASHOUT_FILTER_FC_MIN_VALUE = 0.001
 WASHOUT_FILTER_FC_MAX_VALUE = 5.0
 
 # Damping factor limits
-WASHOUT_FILTER_Z_MIN_VALUE  = 0.05
+WASHOUT_FILTER_Z_MIN_VALUE  = 0.005
 WASHOUT_FILTER_Z_MAX_VALUE  = 3.0
 
 
@@ -76,7 +76,7 @@ WASHOUT_FILTER_Z_MAX_VALUE  = 3.0
 # ==================================================
 
 # Population size
-POPULATION_SIZE = 20
+POPULATION_SIZE = 10
 
 # Number of generations
 GENERATION_SIZE = 20
@@ -86,14 +86,14 @@ MUTATION_PROPABILITY = 0.50
 
 # Mutation impact
 # NOTE: Percent of mutation impact on gene change 
-MUTATION_IMPACT = 0.50
+MUTATION_IMPACT = 0.05
 
-# TODO: implement elitism
+# Number of elite population
 ELITISM_NUM = 2
 
 # Size of tournament
 # NOTE: Must not be smaller than population size
-TURNAMENT_SIZE = 4
+TURNAMENT_SIZE = 8
 
 # Crossover propability
 CROSSOVER_PROPABILITY = 0.50
@@ -597,8 +597,6 @@ def select_elite(pop, pop_fitness, elite_num):
     # Make a working copy
     pop_temp = copy.deepcopy( pop )
     pop_fit_temp = copy.deepcopy( pop_fitness )
-
-    print("Elite selection fitness: %s" % ["%.2f" % f for f in pop_fit_temp])
     
     # Select elite numer of best specimen
     for n in range(elite_num):
@@ -632,7 +630,8 @@ def make_new_generation(pop, pop_fitness, mutation_rate, crossover_rate, elite_n
     for s in range( POPULATION_SIZE - elite_num ):
 
         # Select parents & remove then from next selection cycle
-        p1, p2 = select_parents(pop, pop_fitness)
+        #p1, p2 = select_parents(pop, pop_fitness)
+        p1, p2 = select_parents( copy.deepcopy(pop), copy.deepcopy(pop_fitness) ) 
         
         # Make a child
         child = make_love(p1, p2, crossover_rate)
@@ -807,19 +806,19 @@ if __name__ == "__main__":
     POPULATION_ZERO_INJECTION_NUM = 2
 
     # Initial good example
-    Wht   =[[0.206432,0.569531],[0.476191,0.142383],[0.131836,0.239415]]
-    Wrtzt =[0.291333,0.183980,4.218750]
-    W12   =[[ 3.388638, 3.000000 ],[0.045896,0.358896]]
-    W11   =[1.090045,0.296631,1.250000]
+    Wht   =[[0.016496,0.042655],[0.013504,0.063655],[0.019051,0.063655]]
+    Wrtzt =[0.005404,0.008660,0.135590]
+    W12   =[[ 0.027772, 0.198342 ],[0.030232,0.311606]]
+    W11   =[0.014108,0.040818,0.023847]
     
     # Add speciment to popolation
     pop.append( generate_specimen(Wht, Wrtzt, W12, W11 ))
 
     # Initial good example
-    Wht   =[[3.577119,2.137148],[1.052224,1.808332],[0.074586,2.210721]]
-    Wrtzt =[1.996648,4.125849,1.864564]
-    W12   =[[ 0.556151, 0.536369 ],[3.916467,1.512384]]
-    W11   =[3.445081,4.559543,3.732621]
+    Wht   =[[0.015000,0.037500],[0.015000,0.084375],[0.010824,0.037500]]
+    Wrtzt =[0.010000,0.007500,0.324367]
+    W12   =[[ 0.032473, 0.189845 ],[0.113906,0.427149]]
+    W11   =[0.022500,0.008438,0.024027]
 
     # Add speciment to population
     pop.append( generate_specimen(Wht, Wrtzt, W12, W11 ))
