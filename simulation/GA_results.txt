@@ -826,3 +826,80 @@ Crossover propability: 0.5
 
 
 
+########################################################################################################
+NEW IMPLEMENTATION ON 30.01.2021 FIXED MAJOR ELITISM BUG!!!!
+
+
+===============================================================================================
+     EVOLUTION FINISHED
+===============================================================================================
+First population fit: 838.40
+End population fit: 948.64
+Overall evolution progress: 1.10 %
+First best specimen fit: 35.64
+End population best specimen fit: 39.55
+Best specimen progress: 0.039 %
+End score: 31.62
+
+Evolution total duration: 217.94 sec
+
+First population best specimen coefficients:
+Wht   =[[4.992089,2.811314],[3.863568,2.080077],[1.293542,0.351268]]
+Wrtzt =[0.272724,2.567503,0.038635]
+W12   =[[ 4.544862, 2.124007 ],[2.178137,1.764186]]
+W11   =[3.491694,1.730640,0.762207]
+
+End population best specimen coefficients:
+Wht   =[[1.391280,0.655473],[0.021970,1.911000],[5.000000,0.279162]]
+Wrtzt =[0.021360,0.262811,0.795128]
+W12   =[[ 1.987542, 3.000000 ],[5.000000,0.720300]]
+W11   =[1.676099,2.028845,0.111877]
+
+
+GA SETTINGS:
+Number of generations: 20
+Number of populations: 30
+Mutation propability: 0.1
+Mutation impact: 0.3
+Elithism number: 2
+Crossover propability: 0.5
+
+
+===============================================================================================
+     EVOLUTION FINISHED !!!!!!!!!!!!!!!! BEST TILL: 30.01.2021
+===============================================================================================
+First population fit: 569.54
+End population fit: 192.65
+Overall evolution progress: -3.77 %
+First best specimen fit: 36.08
+End population best specimen fit: 47.44
+Best specimen progress: 0.114 %
+End score: 9.63
+
+Evolution total duration: 143.76 sec
+
+First population best specimen coefficients:
+Wht   =[[4.048223,2.698836],[0.365152,1.548668],[5.000000,0.165111]]
+Wrtzt =[4.007959,2.022238,2.611250]
+W12   =[[ 0.490939, 0.071723 ],[4.027901,0.843164]]
+W11   =[0.485441,1.013454,4.828150]
+
+End population best specimen coefficients:
+Wht   =[[0.015000,0.282027],[0.012853,0.050000],[0.241235,0.050000]]
+Wrtzt =[0.010000,0.010000,0.118184]
+W12   =[[ 0.175781, 0.427148 ],[0.074158,0.180281]]
+W11   =[0.019373,0.010000,0.024548]
+
+
+GA SETTINGS:
+Number of generations: 20
+Number of populations: 20
+Mutation propability: 0.25
+Mutation impact: 0.5
+Elithism number: 2
+Crossover propability: 0.5
+
+
+
+
+

@@ -76,17 +76,17 @@ WASHOUT_FILTER_Z_MAX_VALUE  = 3.0
 # ==================================================
 
 # Population size
-POPULATION_SIZE = 10
+POPULATION_SIZE = 20
 
 # Number of generations
 GENERATION_SIZE = 20
 
 # Mutation propability
-MUTATION_PROPABILITY = 0.10
+MUTATION_PROPABILITY = 0.50
 
 # Mutation impact
 # NOTE: Percent of mutation impact on gene change 
-MUTATION_IMPACT = 0.30
+MUTATION_IMPACT = 0.50
 
 # TODO: implement elitism
 ELITISM_NUM = 2
@@ -96,7 +96,7 @@ ELITISM_NUM = 2
 TURNAMENT_SIZE = 4
 
 # Crossover propability
-CROSSOVER_PROPABILITY = 0.75
+CROSSOVER_PROPABILITY = 0.50
 
 
 # ==================================================
@@ -271,7 +271,8 @@ def generate_specimen_random_gene(fc_low, fc_high, z_low, z_high):
     W11.pitch.fc = get_random_float(fc_low, fc_high, 1)
     W11.yaw.fc   = get_random_float(fc_low, fc_high, 1)
 
-    return Wht, Wrtzt, W11, W12
+    #return Wht, Wrtzt, W11, W12
+    return Specimen( Wht, Wrtzt, W11, W12 )
 
 # ===============================================================================
 # @brief: List specimen coefficients (genes)
@@ -587,6 +588,7 @@ def find_best_specimen_and_fitness(pop, pop_fitness):
     return _best_specimen, _best_specimen_fitness
 
 
+
 def select_elite(pop, pop_fitness, elite_num):
     _elite_pop = []
     pop_temp = []
@@ -648,7 +650,7 @@ def make_new_generation(pop, pop_fitness, mutation_rate, crossover_rate, elite_n
 def print_pop_fitness_ratio(pop_fitness, pop_fitness_sum):
     fitness_ratio = []
     for p_fit in pop_fitness:
-        fitness_ratio.append( p_fit / pop_fitness_sum )
+        fitness_ratio.append( p_fit / ( pop_fitness_sum / POPULATION_SIZE ))
     print("f/f_avg: %s" % ["%.3f" % r for r in fitness_ratio])
 
 
@@ -741,6 +743,40 @@ def generate_stimuli_signal():
     return _x, len(_x)
 
 
+def generate_specimen(Wht_in, Wrtzt_in, W12_in, W11_in):
+
+    # Create washout coefficients
+    Wht     = WashoutWhtCoefficients()
+    Wrtzt   = WashoutWrtztCoefficients()
+    W12     = WashoutW12Coefficients()
+    W11     = WashoutW11Coefficients()
+
+    # Generte Wht values
+    Wht.x.fc = Wht_in[0][0]
+    Wht.x.z  = Wht_in[0][1]
+    Wht.y.fc = Wht_in[1][0]
+    Wht.y.z  = Wht_in[1][1]
+    Wht.z.fc = Wht_in[2][0]
+    Wht.z.z  = Wht_in[2][1]
+
+    # Generate Wrtzt values
+    Wrtzt.x.fc = Wrtzt_in[0]
+    Wrtzt.y.fc = Wrtzt_in[1]
+    Wrtzt.z.fc = Wrtzt_in[2]
+
+    # Generate W12 values
+    W12.roll.fc  = W12_in[0][0]
+    W12.roll.z   = W12_in[0][1]
+    W12.pitch.fc = W12_in[1][0]
+    W12.pitch.z  = W12_in[1][1]
+    
+    # Generate W11 values
+    W11.roll.fc  = W11_in[0]
+    W11.pitch.fc = W11_in[1]
+    W11.yaw.fc   = W11_in[2]
+
+    return Specimen( Wht, Wrtzt, W11, W12 )
+
 
 
 
@@ -764,13 +800,35 @@ if __name__ == "__main__":
     # Population
     pop = []
 
+
+    # ===============================================================================
+    #   START GENERATION OF POPULATION ZERO WITH GOOD SPECIMENS
+    # ===============================================================================
+    POPULATION_ZERO_INJECTION_NUM = 2
+
+    # Initial good example
+    Wht   =[[0.206432,0.569531],[0.476191,0.142383],[0.131836,0.239415]]
+    Wrtzt =[0.291333,0.183980,4.218750]
+    W12   =[[ 3.388638, 3.000000 ],[0.045896,0.358896]]
+    W11   =[1.090045,0.296631,1.250000]
+    
+    # Add speciment to popolation
+    pop.append( generate_specimen(Wht, Wrtzt, W12, W11 ))
+
+    # Initial good example
+    Wht   =[[3.577119,2.137148],[1.052224,1.808332],[0.074586,2.210721]]
+    Wrtzt =[1.996648,4.125849,1.864564]
+    W12   =[[ 0.556151, 0.536369 ],[3.916467,1.512384]]
+    W11   =[3.445081,4.559543,3.732621]
+
+    # Add speciment to population
+    pop.append( generate_specimen(Wht, Wrtzt, W12, W11 ))
+
     # ===============================================================================
     #   RANDOM GENERATION OF POPULATION ZERO
     # ===============================================================================
-    for n in range(POPULATION_SIZE):
-        Wht, Wrtzt, W11, W22 = generate_specimen_random_gene(WASHOUT_FILTER_FC_MIN_VALUE, WASHOUT_FILTER_FC_MAX_VALUE, WASHOUT_FILTER_Z_MIN_VALUE, WASHOUT_FILTER_Z_MAX_VALUE)
-        pop.append( Specimen( Wht=Wht, Wrtzt=Wrtzt, W11=W11, W12=W22 ))
-
+    for n in range(POPULATION_SIZE-POPULATION_ZERO_INJECTION_NUM):
+        pop.append( generate_specimen_random_gene(WASHOUT_FILTER_FC_MIN_VALUE, WASHOUT_FILTER_FC_MAX_VALUE, WASHOUT_FILTER_Z_MIN_VALUE, WASHOUT_FILTER_Z_MAX_VALUE) )
         
     # Variables for statistics
     best_specimen = Specimen(0,0,0,0)
@@ -798,14 +856,9 @@ if __name__ == "__main__":
         pop_fitness, pop_fitness_sum = calculate_population_fitness( pop, POPULATION_SIZE, SAMPLE_FREQ, stim_signal, stim_size, INPUT_SIGNAL_ROUTE )
 
         # Find best speciment and its fitness
-        best_specimen, best_specimen_fitness = find_best_specimen_and_fitness(pop, pop_fitness)
+        best_specimen, best_specimen_fitness = find_best_specimen_and_fitness(copy.deepcopy(pop), pop_fitness)
 
-
-        # Store first population fitness sum
-        if g == 0:
-            first_best_specimen = best_specimen 
-            first_best_specimen_fitness = best_specimen_fitness
-            first_pop_fitness_sum = pop_fitness_sum
+        print("Pop fitness: %s" % ["%.3f" % p for p in pop_fitness])
 
         # ===============================================================================
         #   2. REPRODUCTION
@@ -814,14 +867,7 @@ if __name__ == "__main__":
         # Make a new (BETTER) generation
         pop = make_new_generation(pop, pop_fitness, MUTATION_PROPABILITY, CROSSOVER_PROPABILITY, ELITISM_NUM)
 
-        print("Return: ")
-        print_specimen_coefficient( pop[0])
-        print_specimen_coefficient( pop[1])
 
-        print("Best pop[0] fit: %.3f" % calculate_fitness( pop[0], SAMPLE_FREQ, stim_signal, stim_size, INPUT_SIGNAL_ROUTE ))
-        print("Best pop[1] fit: %.3f" % calculate_fitness( pop[1], SAMPLE_FREQ, stim_signal, stim_size, INPUT_SIGNAL_ROUTE ))
-        #print("Best pop[-3] fit: %.3f" % calculate_fitness( pop[-3], SAMPLE_FREQ, stim_signal, stim_size, INPUT_SIGNAL_ROUTE ))
-        #print("Best pop[-4] fit: %.3f" % calculate_fitness( pop[-4], SAMPLE_FREQ, stim_signal, stim_size, INPUT_SIGNAL_ROUTE ))
 
         # ===============================================================================
         #   Intermediate reports of evolution
@@ -831,12 +877,14 @@ if __name__ == "__main__":
         exe_time = gen_timer.restart()
 
 
-
-
-
+        # Store first population fitness sum
+        if g == 0:
+            first_best_specimen = best_specimen 
+            first_best_specimen_fitness = best_specimen_fitness
+            first_pop_fitness_sum = pop_fitness_sum
 
         # Report progress
-        if g > 0:
+        else:
             print("Overall evolution progress: %.2f %%" % (( pop_fitness_sum - first_pop_fitness_sum ) / 100.0 ))
             print("Generation progress: %.2f %%\n" % (( pop_fitness_sum - pop_fitness_sum_prev ) / 100.0 ))
         pop_fitness_sum_prev = pop_fitness_sum
@@ -859,8 +907,7 @@ if __name__ == "__main__":
     # Stop evolution timer
     evo_duration = evo_timer.stop()
 
-    # Find end best specimen
-    #end_best_specimen, end_best_specimen_fitness = find_best_specimen_and_fitness(pop, pop_fitness)
+
 
     # End report
     print("===============================================================================================")
@@ -876,16 +923,13 @@ if __name__ == "__main__":
     print("Best specimen progress: %.3f %%" % (( best_specimen_fitness - first_best_specimen_fitness ) / 100.0 ))
 
     print("End score: %.2f\n" % ( pop_fitness_sum / POPULATION_SIZE ))
-    #print("Best coefficients:\n -Wht = %s \n -Wrtzt= %s \n -W11 = %s\n -W12 = %s\n" % ( best_specimen.Wht, best_specimen.Wrtzt, best_specimen.W11, best_specimen.W12 ))
     print("Evolution total duration: %.2f sec\n" % evo_duration )    
-
 
     
     print("First population best specimen coefficients: ")
     print_specimen_coefficient( first_best_specimen, raw=True )
 
     print("End population best specimen coefficients: ")
-    #print_specimen_coefficient( pop[max_fitness_idx], raw=True )
     print_specimen_coefficient( best_specimen, raw=True )
 
     print("\nGA SETTINGS:")
@@ -895,6 +939,10 @@ if __name__ == "__main__":
     print("Mutation impact: %s" % MUTATION_IMPACT)
     print("Elithism number: %s" % ELITISM_NUM)
     print("Crossover propability: %s" % CROSSOVER_PROPABILITY)
+
+    print("\nSTIMULI SETTINGS:")
+    print("Time window: %.1f sec" % TIME_WINDOW)
+    print("Route to: %s" % INPUT_SIGNAL_ROUTE)
     
 
 # ===============================================================================
