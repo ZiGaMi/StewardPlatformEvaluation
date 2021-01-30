@@ -1015,5 +1015,43 @@ STIMULI SETTINGS:
 Time window: 4.0 sec
 Route to: 0
 
+===============================================================================================
+     EVOLUTION FINISHED
+===============================================================================================
+First population fit: 380.83
+End population fit: 578.89
+Overall evolution progress: 1.98 %
+First best specimen fit: 31.70
+End population best specimen fit: 40.01
+Best specimen progress: 0.083 %
+End score: 28.94
+
+Evolution total duration: 1329.71 sec
+
+First population best specimen coefficients:
+Wht   =[[0.008612,0.334884],[0.949866,2.713146],[4.500000,2.091646]]
+Wrtzt =[0.131750,2.459120,2.181233]
+W12   =[[ 0.489539, 1.996713 ],[0.098660,1.987168]]
+W11   =[1.397788,0.011094,0.299441]
+
+End population best specimen coefficients:
+Wht   =[[0.006031,0.315287],[4.455000,1.604406],[3.645000,1.479522]]
+Wrtzt =[0.067938,1.839141,3.408561]
+W12   =[[ 0.388636, 2.923388 ],[0.151106,2.143479]]
+W11   =[1.098581,0.010657,0.326091]
+
+
+GA SETTINGS:
+Number of generations: 50
+Number of populations: 20
+Mutation propability: 0.5
+Mutation impact: 0.1
+Elithism number: 2
+Crossover propability: 0.5
+
+STIMULI SETTINGS:
+Time window: 4.0 sec
+Route to: 0
+
 
 

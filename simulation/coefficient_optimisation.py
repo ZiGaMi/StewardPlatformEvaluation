@@ -82,7 +82,7 @@ POPULATION_SIZE = 50
 GENERATION_SIZE = 100
 
 # Mutation propability
-MUTATION_PROPABILITY = 0.50
+MUTATION_PROPABILITY = 0.75
 
 # Mutation impact
 # NOTE: Percent of mutation impact on gene change 
@@ -96,7 +96,7 @@ ELITISM_NUM = 2
 TURNAMENT_SIZE = 8
 
 # Crossover propability
-CROSSOVER_PROPABILITY = 0.50
+CROSSOVER_PROPABILITY = 0.75
 
 
 # ==================================================
@@ -806,19 +806,19 @@ if __name__ == "__main__":
     POPULATION_ZERO_INJECTION_NUM = 2
 
     # Initial good example
-    Wht   =[[0.008612,0.334884],[0.949866,2.713146],[4.500000,2.091646]]
-    Wrtzt =[0.131750,2.459120,2.181233]
-    W12   =[[ 0.489539, 1.996713 ],[0.098660,1.987168]]
-    W11   =[1.397788,0.011094,0.299441]
+    Wht   =[[0.005132,0.351510],[4.232426,1.618183],[4.165301,2.284739]]
+    Wrtzt =[0.057245,1.746907,3.302366]
+    W12   =[[ 0.337525, 3.000000 ],[0.153989,2.183940]]
+    W11   =[1.200301,0.010024,0.363518]
     
     # Add speciment to popolation
     pop.append( generate_specimen(Wht, Wrtzt, W12, W11 ))
 
     # Initial good example
-    Wht   =[[0.008612,0.334884],[0.949866,2.713146],[4.500000,2.091646]]
-    Wrtzt =[0.131750,2.459120,2.181233]
-    W12   =[[ 0.489539, 1.996713 ],[0.098660,1.987168]]
-    W11   =[1.397788,0.011094,0.299441]
+    Wht   =[[0.005132,0.351510],[4.232426,1.618183],[4.165301,2.284739]]
+    Wrtzt =[0.057245,1.746907,3.302366]
+    W12   =[[ 0.337525, 3.000000 ],[0.153989,2.183940]]
+    W11   =[1.200301,0.010024,0.363518]
 
     # Add speciment to population
     pop.append( generate_specimen(Wht, Wrtzt, W12, W11 ))
