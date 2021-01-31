@@ -1361,6 +1361,51 @@ Route to: 0
 
 
 
+********************************************************************************************************
+	EVOLUTION OF Y-AXIS ACCELERATIONS
+********************************************************************************************************
+
+
+===============================================================================================
+     EVOLUTION FINISHED
+===============================================================================================
+First population fit: 235.49
+End population fit: 496.31
+Overall evolution progress: 2.61 %
+First best specimen fit: 24.57
+End population best specimen fit: 25.25
+Best specimen progress: 0.007 %
+End score: 24.82
+
+Evolution total duration: 239.56 sec
+
+First population best specimen coefficients:
+Wht   =[[0.004684,0.388013],[0.008537,2.466316],[0.980027,2.305855]]
+Wrtzt =[0.043182,0.214144,1.000000]
+W12   =[[ 0.284246, 3.014246 ],[0.728802,0.624616]]
+W11   =[0.994925,0.402123,0.994925]
+
+End population best specimen coefficients:
+Wht   =[[0.004323,0.388013],[0.008537,1.638192],[0.980027,2.305855]]
+Wrtzt =[0.043182,0.257563,0.936174]
+W12   =[[ 0.318968, 3.014246 ],[0.607885,0.624616]]
+W11   =[0.994925,0.402123,1.000000]
+
+
+GA SETTINGS:
+Number of generations: 1000
+Number of populations: 20
+Mutation propability: 0.1
+Mutation impact range: [0.001, 0.25]
+Elithism number: 2
+Crossover propability: 0.5
+
+STIMULI SETTINGS:
+Time window: 4.0 sec
+Route to: 1
+
+
+
 
 
 
