@@ -85,8 +85,8 @@ GENERATION_SIZE = 1000
 MUTATION_PROPABILITY = 0.10
 
 # Mutation impact
-# NOTE: Percent of mutation impact on gene change 
-MUTATION_IMPACT = 0.005
+MUTATION_MIN_IMPACT = 0.001
+MUTATION_MAX_IMPACT = 0.25
 
 # Number of elite population
 ELITISM_NUM = 2
@@ -591,11 +591,16 @@ def mutate_child_gene(gene, mutation_rate, low, high):
     # Is gene being mutated?
     if 1 == np.random.choice([0, 1], p=[1.0 - mutation_rate, mutation_rate], size=1):
 
+        # Get random mutation impact
+        _mutation_impact = get_random_float( MUTATION_MIN_IMPACT, MUTATION_MAX_IMPACT, size=1 )
+
         # 50/50 if positive or negative affect of mutation
         if 1 == np.random.choice([0, 1], p=[0.5, 0.5], size=1):
-            mut_gene = (( 1.0 + MUTATION_IMPACT ) * gene )
+            #mut_gene = (( 1.0 + MUTATION_IMPACT ) * gene )
+            mut_gene = (( 1.0 + _mutation_impact ) * gene )
         else:
-            mut_gene = (( 1.0 - MUTATION_IMPACT ) * gene )
+            #mut_gene = (( 1.0 - MUTATION_IMPACT ) * gene )
+            mut_gene = (( 1.0 - _mutation_impact ) * gene )
 
         # Limit mutation
         if mut_gene > high:
@@ -863,19 +868,19 @@ if __name__ == "__main__":
     POPULATION_ZERO_INJECTION_NUM = 2
 
     # Initial good example
-    Wht   =[[0.004685,0.399930],[4.885097,1.575648],[4.290009,2.306547]]
-    Wrtzt =[0.044293,1.852845,3.720166]
-    W12   =[[ 0.278687, 2.985000 ],[4.585271,2.286228]]
-    W11   =[4.365898,3.785839,2.912557]
+    Wht   =[[0.004684,0.388013],[0.008537,2.466316],[0.980027,2.305855]]
+    Wrtzt =[0.043182,0.214144,1.000000]
+    W12   =[[ 0.284246, 3.014246 ],[0.728802,0.624616]]
+    W11   =[0.994925,0.402123,0.994925]
     
     # Add speciment to popolation
     pop.append( generate_specimen(Wht, Wrtzt, W12, W11 ))
 
     # Initial good example
-    Wht   =[[0.003721,0.420203],[0.010176,2.782087],[0.941817,0.333087]]
-    Wrtzt =[0.043192,0.173673,0.816260]
-    W12   =[[ 0.291475, 3.364404 ],[0.994950,2.407105]]
-    W11   =[0.974932,0.402213,0.006893]
+    Wht   =[[0.004323,0.388013],[0.008537,1.638192],[0.980027,2.305855]]
+    Wrtzt =[0.043182,0.257563,0.936174]
+    W12   =[[ 0.318968, 3.014246 ],[0.607885,0.624616]]
+    W11   =[0.994925,0.402123,1.000000]
 
 
     # Add speciment to population
@@ -1001,7 +1006,7 @@ if __name__ == "__main__":
     print("Number of generations: %s" % GENERATION_SIZE)
     print("Number of populations: %s" % POPULATION_SIZE)
     print("Mutation propability: %s" % MUTATION_PROPABILITY)
-    print("Mutation impact: %s" % MUTATION_IMPACT)
+    print("Mutation impact range: [%s, %s]" % ( MUTATION_MIN_IMPACT, MUTATION_MAX_IMPACT ))
     print("Elithism number: %s" % ELITISM_NUM)
     print("Crossover propability: %s" % CROSSOVER_PROPABILITY)
 
