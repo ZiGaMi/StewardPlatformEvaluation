@@ -1053,5 +1053,314 @@ STIMULI SETTINGS:
 Time window: 4.0 sec
 Route to: 0
 
+===============================================================================================
+     EVOLUTION FINISHED
+===============================================================================================
+First population fit: 877.43
+End population fit: 1838.16
+Overall evolution progress: 9.61 %
+First best specimen fit: 31.70
+End population best specimen fit: 36.95
+Best specimen progress: 0.052 %
+End score: 36.76
+
+Evolution total duration: 6843.12 sec
+
+First population best specimen coefficients:
+Wht   =[[0.008612,0.334884],[0.949866,2.713146],[4.500000,2.091646]]
+Wrtzt =[0.131750,2.459120,2.181233]
+W12   =[[ 0.489539, 1.996713 ],[0.098660,1.987168]]
+W11   =[1.397788,0.011094,0.299441]
+
+End population best specimen coefficients:
+Wht   =[[0.007787,0.295353],[0.939992,2.657959],[4.497526,2.197569]]
+Wrtzt =[0.091836,2.361279,2.246258]
+W12   =[[ 0.451653, 2.562106 ],[0.099101,2.087748]]
+W11   =[1.348851,0.011773,0.302261]
+
+
+GA SETTINGS:
+Number of generations: 100
+Number of populations: 50
+Mutation propability: 0.5
+Mutation impact: 0.005
+Elithism number: 2
+Crossover propability: 0.5
+
+STIMULI SETTINGS:
+Time window: 4.0 sec
+Route to: 0
+
+===============================================================================================
+     EVOLUTION FINISHED
+===============================================================================================
+First population fit: 918.04
+End population fit: 2072.26
+Overall evolution progress: 11.54 %
+First best specimen fit: 41.36
+End population best specimen fit: 41.88
+Best specimen progress: 0.005 %
+End score: 41.45
+
+Evolution total duration: 7037.39 sec
+
+First population best specimen coefficients:
+Wht   =[[0.005132,0.351510],[4.232426,1.618183],[4.165301,2.284739]]
+Wrtzt =[0.057245,1.746907,3.302366]
+W12   =[[ 0.337525, 3.000000 ],[0.153989,2.183940]]
+W11   =[1.200301,0.010024,0.363518]
+
+End population best specimen coefficients:
+Wht   =[[0.004504,0.392148],[4.187275,1.674503],[4.019774,2.097432]]
+Wrtzt =[0.051513,1.685789,3.452598]
+W12   =[[ 0.308297, 3.000000 ],[0.156205,2.294422]]
+W11   =[1.152516,0.010690,0.356106]
+
+
+GA SETTINGS:
+Number of generations: 100
+Number of populations: 50
+Mutation propability: 0.75
+Mutation impact: 0.005
+Elithism number: 2
+Crossover propability: 0.75
+
+STIMULI SETTINGS:
+Time window: 4.0 sec
+Route to: 0
+
+
+===============================================================================================
+     EVOLUTION FINISHED
+===============================================================================================
+First population fit: 918.75
+End population fit: 2068.49
+Overall evolution progress: 11.50 %
+First best specimen fit: 41.36
+End population best specimen fit: 41.87
+Best specimen progress: 0.005 %
+End score: 41.37
+
+Evolution total duration: 6957.44 sec
+
+First population best specimen coefficients:
+Wht   =[[0.005132,0.351510],[4.232426,1.618183],[4.165301,2.284739]]
+Wrtzt =[0.057245,1.746907,3.302366]
+W12   =[[ 0.337525, 3.000000 ],[0.153989,2.183940]]
+W11   =[1.200301,0.010024,0.363518]
+
+End population best specimen coefficients:
+Wht   =[[0.004526,0.390226],[4.674168,1.649594],[4.141471,2.329030]]
+Wrtzt =[0.051506,1.789989,3.594143]
+W12   =[[ 0.308282, 3.000000 ],[4.564626,2.298808]]
+W11   =[4.367754,0.010322,0.391551]
+
+
+GA SETTINGS:
+Number of generations: 100
+Number of populations: 50
+Mutation propability: 0.75
+Mutation impact: 0.005
+Elithism number: 2
+Crossover propability: 0.75
+
+STIMULI SETTINGS:
+Time window: 4.0 sec
+Route to: 0
+
+===============================================================================================
+     EVOLUTION FINISHED
+===============================================================================================
+First population fit: 538.39
+End population fit: 1252.14
+Overall evolution progress: 7.14 %
+First best specimen fit: 41.87
+End population best specimen fit: 42.03
+Best specimen progress: 0.002 %
+End score: 41.74
+
+Evolution total duration: 2563.01 sec
+
+First population best specimen coefficients: 
+Wht   =[[0.004526,0.390226],[4.674168,1.649594],[4.141471,2.329030]]
+Wrtzt =[0.051506,1.789989,3.594143]
+W12   =[[ 0.308282, 3.000000 ],[4.564626,2.298808]]
+W11   =[4.367754,0.010322,0.391551]
+
+End population best specimen coefficients:
+Wht   =[[0.004304,0.398000],[4.743090,1.560750],[4.223551,2.351555]]
+Wrtzt =[0.049222,0.283397,3.540057]
+W12   =[[ 0.294625, 3.000000 ],[2.368350,2.257565]]
+W11   =[2.714269,3.768794,2.828174]
+
+
+GA SETTINGS:
+Number of generations: 50
+Number of populations: 30
+Mutation propability: 1.0
+Mutation impact: 0.005
+Elithism number: 2
+Crossover propability: 0.75
+
+STIMULI SETTINGS:
+Time window: 4.0 sec
+Route to: 0
+
+===============================================================================================
+     EVOLUTION FINISHED
+===============================================================================================
+First population fit: 577.29
+End population fit: 1247.28
+Overall evolution progress: 6.70 %
+First best specimen fit: 41.87
+End population best specimen fit: 41.95
+Best specimen progress: 0.001 %
+End score: 41.58
+
+Evolution total duration: 2553.63 sec
+
+First population best specimen coefficients:
+Wht   =[[0.004526,0.390226],[4.674168,1.649594],[4.141471,2.329030]]
+Wrtzt =[0.051506,1.789989,3.594143]
+W12   =[[ 0.308282, 3.000000 ],[4.564626,2.298808]]
+W11   =[4.367754,0.010322,0.391551]
+
+End population best specimen coefficients:
+Wht   =[[0.004414,0.396079],[4.359797,1.617617],[4.334208,2.307124]]
+Wrtzt =[0.050477,1.825830,3.666108]
+W12   =[[ 0.302094, 3.000000 ],[4.609695,2.275536]]
+W11   =[4.477821,0.010320,0.391482]
+
+
+GA SETTINGS:
+Number of generations: 50
+Number of populations: 30
+Mutation propability: 1.0
+Mutation impact: 0.005
+Elithism number: 2
+Crossover propability: 0.75
+
+STIMULI SETTINGS:
+Time window: 4.0 sec
+Route to: 0
+
+
+===============================================================================================
+     EVOLUTION FINISHED
+===============================================================================================
+First population fit: 505.30
+End population fit: 1244.66
+Overall evolution progress: 7.39 %
+First best specimen fit: 42.03
+End population best specimen fit: 42.14
+Best specimen progress: 0.001 %
+End score: 41.49
+
+Evolution total duration: 2635.24 sec
+
+First population best specimen coefficients:
+Wht   =[[0.004304,0.398000],[4.743090,1.560750],[4.223551,2.351555]]
+Wrtzt =[0.049222,0.283397,3.540057]
+W12   =[[ 0.294625, 3.000000 ],[2.368350,2.257565]]
+W11   =[2.714269,3.768794,2.828174]
+
+End population best specimen coefficients:
+Wht   =[[0.004135,0.410059],[4.837819,1.529501],[4.442652,2.364850]]
+Wrtzt =[0.047283,1.852984,3.468831]
+W12   =[[ 0.284424, 3.000000 ],[2.415469,2.279570]]
+W11   =[2.686590,3.730547,2.884658]
+
+
+GA SETTINGS:
+Number of generations: 50
+Number of populations: 30
+Mutation propability: 1.0
+Mutation impact: 0.005
+Elithism number: 2
+Crossover propability: 0.75
+
+STIMULI SETTINGS:
+Time window: 4.0 sec
+Route to: 0
+
+===============================================================================================
+     EVOLUTION FINISHED
+===============================================================================================
+First population fit: 215.73
+End population fit: 418.64
+Overall evolution progress: 2.03 %
+First best specimen fit: 42.13
+End population best specimen fit: 42.27
+Best specimen progress: 0.001 %
+End score: 41.86
+
+Evolution total duration: 839.90 sec
+
+First population best specimen coefficients:
+Wht   =[[0.004135,0.410059],[4.837819,1.529501],[4.442652,2.364850]]
+Wrtzt =[0.047283,1.852984,3.468831]
+W12   =[[ 0.284424, 3.000000 ],[2.415469,2.279570]]
+W11   =[2.686590,3.730547,2.884658]
+
+End population best specimen coefficients:
+Wht   =[[0.003933,0.422494],[4.717841,1.552442],[4.442097,2.388319]]
+Wrtzt =[0.045879,1.909178,3.645954]
+W12   =[[ 0.275977, 3.000000 ],[2.355448,2.290624]]
+W11   =[2.686254,3.674593,2.897632]
+
+
+GA SETTINGS:
+Number of generations: 50
+Number of populations: 10
+Mutation propability: 1.0
+Mutation impact: 0.005
+Elithism number: 2
+Crossover propability: 0.75
+
+STIMULI SETTINGS:
+Time window: 4.0 sec
+Route to: 0
+
+===============================================================================================
+     EVOLUTION FINISHED
+===============================================================================================
+First population fit: 231.02
+End population fit: 844.67
+Overall evolution progress: 6.14 %
+First best specimen fit: 42.27
+End population best specimen fit: 43.01
+Best specimen progress: 0.007 %
+End score: 42.23
+
+Evolution total duration: 1894.39 sec
+
+First population best specimen coefficients:
+Wht   =[[0.003933,0.422494],[4.717841,1.552442],[4.442097,2.388319]]
+Wrtzt =[0.045879,1.909178,3.645954]
+W12   =[[ 0.275977, 3.000000 ],[2.355448,2.290624]]
+W11   =[2.686254,3.674593,2.897632]
+
+End population best specimen coefficients:
+Wht   =[[0.003721,0.420203],[0.010176,2.782087],[0.941817,0.333087]]
+Wrtzt =[0.043192,0.173673,0.816260]
+W12   =[[ 0.291475, 3.364404 ],[0.994950,2.407105]]
+W11   =[0.974932,0.402213,0.006893]
+
+
+GA SETTINGS:
+Number of generations: 50
+Number of populations: 20
+Mutation propability: 1.0
+Mutation impact: 0.005
+Elithism number: 2
+Crossover propability: 0.75
+
+STIMULI SETTINGS:
+Time window: 4.0 sec
+Route to: 0
+
+
+
+
 
 

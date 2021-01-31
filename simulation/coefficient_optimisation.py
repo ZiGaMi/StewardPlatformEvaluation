@@ -42,7 +42,7 @@ IDEAL_SAMPLE_FREQ = 500.0
 ## Time window
 #
 # Unit: second
-TIME_WINDOW = 1
+TIME_WINDOW = 4
 
 ## Input signal shape
 INPUT_SIGNAL_FREQ = 0.1
@@ -64,11 +64,11 @@ SAMPLE_NUM = int(( IDEAL_SAMPLE_FREQ * TIME_WINDOW ) + 1.0 )
 
 # Cutoff frequency limits
 WASHOUT_FILTER_FC_MIN_VALUE = 0.001
-WASHOUT_FILTER_FC_MAX_VALUE = 5.0
+WASHOUT_FILTER_FC_MAX_VALUE = 1.0
 
 # Damping factor limits
 WASHOUT_FILTER_Z_MIN_VALUE  = 0.005
-WASHOUT_FILTER_Z_MAX_VALUE  = 3.0
+WASHOUT_FILTER_Z_MAX_VALUE  = 5.0
 
 
 # ==================================================
@@ -76,13 +76,13 @@ WASHOUT_FILTER_Z_MAX_VALUE  = 3.0
 # ==================================================
 
 # Population size
-POPULATION_SIZE = 10
+POPULATION_SIZE = 20
 
 # Number of generations
-GENERATION_SIZE = 50
+GENERATION_SIZE = 1000
 
 # Mutation propability
-MUTATION_PROPABILITY = 1.0
+MUTATION_PROPABILITY = 0.10
 
 # Mutation impact
 # NOTE: Percent of mutation impact on gene change 
@@ -96,11 +96,10 @@ ELITISM_NUM = 2
 TURNAMENT_SIZE = 8
 
 # Crossover propability
-CROSSOVER_PROPABILITY = 0.75
+CROSSOVER_PROPABILITY = 0.50
 
-# Fitness gain
-# NOTE: Applying exponent function to fitness value 
-FITNESS_EXP = 3
+# Target finess value 
+TARGET_FITNESS = 40.0
 
 
 # ==================================================
@@ -113,7 +112,7 @@ INPUT_SIGNAL_ROUTE_TO_ROLL = 3
 INPUT_SIGNAL_ROUTE_TO_PITCH = 4
 INPUT_SIGNAL_ROUTE_TO_YAW = 5
 
-INPUT_SIGNAL_ROUTE = INPUT_SIGNAL_ROUTE_TO_AX
+INPUT_SIGNAL_ROUTE = INPUT_SIGNAL_ROUTE_TO_AY
 
 
 ## ****** END OF USER CONFIGURATIONS ******
@@ -444,9 +443,6 @@ def calculate_fitness(specimen, fs, stim, stim_size, route_opt):
 
     # Higher system model error lower the fitness
     fitness = ( 1 / fitness )
-
-    # Apply exponent function
-    fitness = ( fitness ** FITNESS_EXP )
 
     return fitness
 
@@ -867,19 +863,20 @@ if __name__ == "__main__":
     POPULATION_ZERO_INJECTION_NUM = 2
 
     # Initial good example
-    Wht   =[[0.004414,0.396079],[4.359797,1.617617],[4.334208,2.307124]]
-    Wrtzt =[0.050477,1.825830,3.666108]
-    W12   =[[ 0.302094, 3.000000 ],[4.609695,2.275536]]
-    W11   =[4.477821,0.010320,0.391482]
+    Wht   =[[0.004685,0.399930],[4.885097,1.575648],[4.290009,2.306547]]
+    Wrtzt =[0.044293,1.852845,3.720166]
+    W12   =[[ 0.278687, 2.985000 ],[4.585271,2.286228]]
+    W11   =[4.365898,3.785839,2.912557]
     
     # Add speciment to popolation
     pop.append( generate_specimen(Wht, Wrtzt, W12, W11 ))
 
     # Initial good example
-    Wht   =[[0.004135,0.410059],[4.837819,1.529501],[4.442652,2.364850]]
-    Wrtzt =[0.047283,1.852984,3.468831]
-    W12   =[[ 0.284424, 3.000000 ],[2.415469,2.279570]]
-    W11   =[2.686590,3.730547,2.884658]
+    Wht   =[[0.003721,0.420203],[0.010176,2.782087],[0.941817,0.333087]]
+    Wrtzt =[0.043192,0.173673,0.816260]
+    W12   =[[ 0.291475, 3.364404 ],[0.994950,2.407105]]
+    W11   =[0.974932,0.402213,0.006893]
+
 
     # Add speciment to population
     pop.append( generate_specimen(Wht, Wrtzt, W12, W11 ))
@@ -963,6 +960,14 @@ if __name__ == "__main__":
 
         print("Execution time: %.0f sec" % exe_time )
         print("Evolution duration: %.2f min\n" % ( evo_timer.time()/60.0 ))
+
+
+        # ===============================================================================
+        #   TERMINATE EVOLUTION - RESULT GOOD ENOUGH
+        # ===============================================================================
+        if best_specimen_fitness > TARGET_FITNESS:
+            print("***** TERMINATION OF EVOLUTION *****")
+            break
        
     # Stop evolution timer
     evo_duration = evo_timer.stop()
