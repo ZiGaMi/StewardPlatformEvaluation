@@ -42,7 +42,7 @@ IDEAL_SAMPLE_FREQ = 500.0
 ## Time window
 #
 # Unit: second
-TIME_WINDOW = 4
+TIME_WINDOW = 1
 
 ## Input signal shape
 INPUT_SIGNAL_FREQ = 0.1
@@ -76,13 +76,13 @@ WASHOUT_FILTER_Z_MAX_VALUE  = 3.0
 # ==================================================
 
 # Population size
-POPULATION_SIZE = 50
+POPULATION_SIZE = 10
 
 # Number of generations
-GENERATION_SIZE = 100
+GENERATION_SIZE = 50
 
 # Mutation propability
-MUTATION_PROPABILITY = 0.75
+MUTATION_PROPABILITY = 1.0
 
 # Mutation impact
 # NOTE: Percent of mutation impact on gene change 
@@ -97,6 +97,10 @@ TURNAMENT_SIZE = 8
 
 # Crossover propability
 CROSSOVER_PROPABILITY = 0.75
+
+# Fitness gain
+# NOTE: Applying exponent function to fitness value 
+FITNESS_EXP = 3
 
 
 # ==================================================
@@ -231,15 +235,58 @@ def get_random_float(low, high, size):
         return np.random.uniform(low, high, size)
 
 # ===============================================================================
-# @brief: Generate random specimen genes
+# @brief:   Generate speciment 
+#
+# @param[in]:    Wht_in         - Wht filter coefficients
+# @param[in]:    Wrtzt_in       - Wrtzt filter coefficients
+# @param[in]:    W12_in         - W12 filter coefficients
+# @param[in]:    W11_in         - W11 filter coefficients
+# @return:       New speciment based on input genes
+# ===============================================================================
+def generate_specimen(Wht_in, Wrtzt_in, W12_in, W11_in):
+
+    # Create washout coefficients
+    Wht     = WashoutWhtCoefficients()
+    Wrtzt   = WashoutWrtztCoefficients()
+    W12     = WashoutW12Coefficients()
+    W11     = WashoutW11Coefficients()
+
+    # Generte Wht values
+    Wht.x.fc = Wht_in[0][0]
+    Wht.x.z  = Wht_in[0][1]
+    Wht.y.fc = Wht_in[1][0]
+    Wht.y.z  = Wht_in[1][1]
+    Wht.z.fc = Wht_in[2][0]
+    Wht.z.z  = Wht_in[2][1]
+
+    # Generate Wrtzt values
+    Wrtzt.x.fc = Wrtzt_in[0]
+    Wrtzt.y.fc = Wrtzt_in[1]
+    Wrtzt.z.fc = Wrtzt_in[2]
+
+    # Generate W12 values
+    W12.roll.fc  = W12_in[0][0]
+    W12.roll.z   = W12_in[0][1]
+    W12.pitch.fc = W12_in[1][0]
+    W12.pitch.z  = W12_in[1][1]
+    
+    # Generate W11 values
+    W11.roll.fc  = W11_in[0]
+    W11.pitch.fc = W11_in[1]
+    W11.yaw.fc   = W11_in[2]
+
+    return Specimen( Wht, Wrtzt, W11, W12 )
+
+# ===============================================================================
+# @brief: Generate random specimen 
 #
 # @param[in]:    fc_low                 - Minimum value of cutoff frequency
 # @param[in]:    fc_high                - Maximum value of cutoff frequency 
 # @param[in]:    z_low                  - Minimum value of damping factor
 # @param[in]:    z_high                 - Maximum value of damping factor 
-# @return:       Wht, Wrtzt, W11, W12   - Specimen washout filter coefficients
+# @return:       New speciment based on random genes
 # ===============================================================================
-def generate_specimen_random_gene(fc_low, fc_high, z_low, z_high):
+def generate_random_specimen(fc_low, fc_high, z_low, z_high):
 
     # Create washout coefficients
     Wht     = WashoutWhtCoefficients()
@@ -398,7 +445,8 @@ def calculate_fitness(specimen, fs, stim, stim_size, route_opt):
     # Higher system model error lower the fitness
     fitness = ( 1 / fitness )
 
-    del(sys_model)
+    # Apply exponent function
+    fitness = ( fitness ** FITNESS_EXP )
 
     return fitness
 
@@ -425,15 +473,20 @@ def calculate_population_fitness(pop, pop_size, fs, stim_signal, stim_size, stim
 
     return _pop_fitness, _pop_fitness_sum
 
-
-
-# Based on turnamet selection
+# ===============================================================================
+# @brief:   Selection of parents based on turnament method
+#
+# @note: Parent 1 is beter or equalt to parent 2
+#
+# @param[in]:    pop            - Population 
+# @param[in]:    pop_fitness    - Population fitness
+# @return:       p1             - Parent 1 
+# @return:       p2             - Parent 2
+# ===============================================================================
 def select_parents(pop, pop_fitness):
 
     # Pick turnament candidates
     turnament_candidates_idx = random.sample(range(0, len(pop)), TURNAMENT_SIZE)
-
-    #print(turnament_candidates_idx)
 
     # Collect candidate fitness
     candidate_fitness = []
@@ -456,6 +509,14 @@ def select_parents(pop, pop_fitness):
     return p1, p2
 
 
+# ===============================================================================
+# @brief:   Crossover genes
+#
+# @param[in]:    gene_1         - Parent 1 genes 
+# @param[in]:    gene_2         - Parent 2 genes 
+# @param[in]:    crossover_rate - Propability of crossover event
+# @return:       Either same gene or parent 2 gene
+# ===============================================================================
 def apply_crossover(gene_1, gene_2, crossover_rate):
     if 1 == np.random.choice([0, 1], p=[1.0 - crossover_rate, crossover_rate], size=1):
         return gene_2
@@ -463,22 +524,20 @@ def apply_crossover(gene_1, gene_2, crossover_rate):
         return gene_1
 
 
-
+# ===============================================================================
+# @brief:   Reproduction function
+#
+# @param[in]:    p1             - Parent 1 
+# @param[in]:    p2             - Parent 2 
+# @param[in]:    crossover_rate - Propability of crossover event
+# @return:       child          - Child of parent 1 & 2
+# ===============================================================================
 def make_love(p1, p2, crossover_rate):
 
     # Inherit from parent 1
     child = Specimen(Wht=p1.Wht, Wrtzt=p1.Wrtzt, W11=p1.W11, W12=p1.W12)
 
-    """
-    child.Wht.x.fc  = apply_crossover( p1.Wht.x.fc, p2.Wht.x.fc, crossover_rate )
-    child.Wht.x.z   = apply_crossover( p1.Wht.x.z, p2.Wht.x.z, crossover_rate )
-    child.Wht.y.fc  = apply_crossover( p1.Wht.y.fc, p2.Wht.y.fc, crossover_rate )
-    child.Wht.y.z   = apply_crossover( p1.Wht.y.z, p2.Wht.y.z, crossover_rate )
-    child.Wht.z.fc  = apply_crossover( p1.Wht.z.fc, p2.Wht.z.fc, crossover_rate ) 
-    child.Wht.z.z   = apply_crossover( p1.Wht.z.z, p2.Wht.z.z, crossover_rate ) 
-    """
-
-    # NOTE: COUPLED GENES
+    # COUPLED GENES - fc & z
     if 1 == np.random.choice([0, 1], p=[1.0 - crossover_rate, crossover_rate], size=1):
         child.Wht.x.fc = p2.Wht.x.fc
         child.Wht.x.z  = p2.Wht.x.z
@@ -491,20 +550,12 @@ def make_love(p1, p2, crossover_rate):
         child.Wht.z.fc = p2.Wht.z.fc
         child.Wht.z.z  = p2.Wht.z.z
     
-
-
+    # Non-coupled genes
     child.Wrtzt.x.fc = apply_crossover( p1.Wrtzt.x.fc, p2.Wrtzt.x.fc, crossover_rate )
     child.Wrtzt.y.fc = apply_crossover( p1.Wrtzt.y.fc, p2.Wrtzt.y.fc, crossover_rate )
     child.Wrtzt.z.fc = apply_crossover( p1.Wrtzt.z.fc, p2.Wrtzt.z.fc, crossover_rate )
 
-    """
-    child.W12.roll.fc  = apply_crossover( p1.W12.roll.fc, p2.W12.roll.fc, crossover_rate )
-    child.W12.roll.z   = apply_crossover( p1.W12.roll.z, p2.W12.roll.z, crossover_rate )
-    child.W12.pitch.fc = apply_crossover( p1.W12.pitch.fc, p2.W12.pitch.fc, crossover_rate )
-    child.W12.pitch.z  = apply_crossover( p1.W12.pitch.z, p2.W12.pitch.z, crossover_rate )
-    """
-
-    # COUPLED GENES
+    # COUPLED GENES - fc & z
     if 1 == np.random.choice([0, 1], p=[1.0 - crossover_rate, crossover_rate], size=1):
         child.W12.roll.fc = p2.W12.roll.fc
         child.W12.roll.z = p2.W12.roll.z
@@ -513,18 +564,32 @@ def make_love(p1, p2, crossover_rate):
         child.W12.pitch.fc = p2.W12.pitch.fc
         child.W12.pitch.z  = p2.W12.pitch.z
 
-
+    # Non-coupled genes
     child.W11.roll.fc  = apply_crossover( p1.W11.roll.fc, p2.W11.roll.fc, crossover_rate )
     child.W11.pitch.fc = apply_crossover( p1.W11.pitch.fc, p2.W11.pitch.fc, crossover_rate )
     child.W11.yaw.fc   = apply_crossover( p1.W11.yaw.fc, p2.W11.yaw.fc, crossover_rate )
 
     return child
 
-
+# ===============================================================================
+# @brief:   Gets mutation target based on mutation propability
+#
+# @param[in]:    mutation_rate  - Propability of mutation event
+# @param[in]:    size           - Size of returned target array
+# @return:       mutation target array
+# ===============================================================================
 def get_mutation_target(mutation_rate, size):
     return np.random.choice([0, 1], p=[1.0 - mutation_rate, mutation_rate], size=size)
     
-
+# ===============================================================================
+# @brief:   Mutation of child gene
+#
+# @param[in]:    gene           - Child gene
+# @param[in]:    mutation_rate  - Propability of mutation event
+# @param[in]:    low            - Low value boundary of mutation 
+# @param[in]:    high           - High value boundary of mutation 
+# @return:       Either mutated or original genes
+# ===============================================================================
 def mutate_child_gene(gene, mutation_rate, low, high):
 
     # Is gene being mutated?
@@ -546,6 +611,13 @@ def mutate_child_gene(gene, mutation_rate, low, high):
     else:
         return gene
 
+# ===============================================================================
+# @brief:   Apply mutation of all child DNA
+#
+# @param[in]:    gene           - Child gene
+# @param[in]:    mutation_rate  - Propability of mutation event
+# @return:       Either mutated or original genes
+# ===============================================================================
 def mutate_child(child, mutation_rate):
 
     # Wht
@@ -574,7 +646,13 @@ def mutate_child(child, mutation_rate):
 
     return child
 
-
+# ===============================================================================
+# @brief:   Find best speciment in current population
+#
+# @param[in]:    pop            - Population 
+# @param[in]:    pop_fitness    - Population fitness
+# @return:       Best speciment and it's fitness value
+# ===============================================================================
 def find_best_specimen_and_fitness(pop, pop_fitness):
 
     # Find best fintess
@@ -587,8 +665,14 @@ def find_best_specimen_and_fitness(pop, pop_fitness):
     
     return _best_specimen, _best_specimen_fitness
 
-
-
+# ===============================================================================
+# @brief:   Find elite in population
+#
+# @param[in]:    pop            - Population 
+# @param[in]:    pop_fitness    - Population fitness
+# @param[in]:    elite_num      - Number of elithism
+# @return:       _elite_pop     - Elite specimens
+# ===============================================================================
 def select_elite(pop, pop_fitness, elite_num):
     _elite_pop = []
     pop_temp = []
@@ -613,16 +697,25 @@ def select_elite(pop, pop_fitness, elite_num):
         pop_temp.remove( _best_specimen )
         pop_fit_temp.remove( _best_specimen_fitness )
 
-
     return _elite_pop
 
-
+# ===============================================================================
+# @brief:   Generate new population
+#
+# @param[in]:    pop            - Population 
+# @param[in]:    pop_fitness    - Population fitness
+# @param[in]:    mutation_rate  - Propability of mutation event
+# @param[in]:    crossover_rate - Propability of crossover genes
+# @param[in]:    elite_num      - Number of elithism
+# @return:       _new_pop       - New population
+# ===============================================================================
 def make_new_generation(pop, pop_fitness, mutation_rate, crossover_rate, elite_num):
     _new_pop = [] 
 
     # Apply elitsm
     _elite_pop = select_elite(pop, pop_fitness, elite_num)
-
+    
+    # Add to new population
     for e in _elite_pop:
         _new_pop.append( e )
 
@@ -630,7 +723,6 @@ def make_new_generation(pop, pop_fitness, mutation_rate, crossover_rate, elite_n
     for s in range( POPULATION_SIZE - elite_num ):
 
         # Select parents & remove then from next selection cycle
-        #p1, p2 = select_parents(pop, pop_fitness)
         p1, p2 = select_parents( copy.deepcopy(pop), copy.deepcopy(pop_fitness) ) 
         
         # Make a child
@@ -644,15 +736,18 @@ def make_new_generation(pop, pop_fitness, mutation_rate, crossover_rate, elite_n
         
     return _new_pop
     
-
-
+# ===============================================================================
+# @brief:   Print population fitness ration. Used for debugging purposes
+#
+# @param[in]:    pop_fitness        - Population fitness
+# @param[in]:    pop_fitness_sum    - Sum of population fitness
+# @return:       void
+# ===============================================================================
 def print_pop_fitness_ratio(pop_fitness, pop_fitness_sum):
     fitness_ratio = []
     for p_fit in pop_fitness:
         fitness_ratio.append( p_fit / ( pop_fitness_sum / POPULATION_SIZE ))
     print("f/f_avg: %s" % ["%.3f" % r for r in fitness_ratio])
-
-
 
 
 # ===============================================================================
@@ -682,8 +777,6 @@ def system_model_route_input_signal(inp_sig, sel):
         raise AssertionError
 
     return a, w
-
-
 
 # ===============================================================================
 # @brief: Generate stimuli signal, based on FunctionGenerator settings...
@@ -742,39 +835,7 @@ def generate_stimuli_signal():
     return _x, len(_x)
 
 
-def generate_specimen(Wht_in, Wrtzt_in, W12_in, W11_in):
 
-    # Create washout coefficients
-    Wht     = WashoutWhtCoefficients()
-    Wrtzt   = WashoutWrtztCoefficients()
-    W12     = WashoutW12Coefficients()
-    W11     = WashoutW11Coefficients()
-
-    # Generte Wht values
-    Wht.x.fc = Wht_in[0][0]
-    Wht.x.z  = Wht_in[0][1]
-    Wht.y.fc = Wht_in[1][0]
-    Wht.y.z  = Wht_in[1][1]
-    Wht.z.fc = Wht_in[2][0]
-    Wht.z.z  = Wht_in[2][1]
-
-    # Generate Wrtzt values
-    Wrtzt.x.fc = Wrtzt_in[0]
-    Wrtzt.y.fc = Wrtzt_in[1]
-    Wrtzt.z.fc = Wrtzt_in[2]
-
-    # Generate W12 values
-    W12.roll.fc  = W12_in[0][0]
-    W12.roll.z   = W12_in[0][1]
-    W12.pitch.fc = W12_in[1][0]
-    W12.pitch.z  = W12_in[1][1]
-    
-    # Generate W11 values
-    W11.roll.fc  = W11_in[0]
-    W11.pitch.fc = W11_in[1]
-    W11.yaw.fc   = W11_in[2]
-
-    return Specimen( Wht, Wrtzt, W11, W12 )
 
 
 
@@ -806,19 +867,19 @@ if __name__ == "__main__":
     POPULATION_ZERO_INJECTION_NUM = 2
 
     # Initial good example
-    Wht   =[[0.005132,0.351510],[4.232426,1.618183],[4.165301,2.284739]]
-    Wrtzt =[0.057245,1.746907,3.302366]
-    W12   =[[ 0.337525, 3.000000 ],[0.153989,2.183940]]
-    W11   =[1.200301,0.010024,0.363518]
+    Wht   =[[0.004414,0.396079],[4.359797,1.617617],[4.334208,2.307124]]
+    Wrtzt =[0.050477,1.825830,3.666108]
+    W12   =[[ 0.302094, 3.000000 ],[4.609695,2.275536]]
+    W11   =[4.477821,0.010320,0.391482]
     
     # Add speciment to popolation
     pop.append( generate_specimen(Wht, Wrtzt, W12, W11 ))
 
     # Initial good example
-    Wht   =[[0.005132,0.351510],[4.232426,1.618183],[4.165301,2.284739]]
-    Wrtzt =[0.057245,1.746907,3.302366]
-    W12   =[[ 0.337525, 3.000000 ],[0.153989,2.183940]]
-    W11   =[1.200301,0.010024,0.363518]
+    Wht   =[[0.004135,0.410059],[4.837819,1.529501],[4.442652,2.364850]]
+    Wrtzt =[0.047283,1.852984,3.468831]
+    W12   =[[ 0.284424, 3.000000 ],[2.415469,2.279570]]
+    W11   =[2.686590,3.730547,2.884658]
 
     # Add speciment to population
     pop.append( generate_specimen(Wht, Wrtzt, W12, W11 ))
@@ -827,7 +888,7 @@ if __name__ == "__main__":
     #   RANDOM GENERATION OF POPULATION ZERO
     # ===============================================================================
     for n in range(POPULATION_SIZE-POPULATION_ZERO_INJECTION_NUM):
-        pop.append( generate_specimen_random_gene(WASHOUT_FILTER_FC_MIN_VALUE, WASHOUT_FILTER_FC_MAX_VALUE, WASHOUT_FILTER_Z_MIN_VALUE, WASHOUT_FILTER_Z_MAX_VALUE) )
+        pop.append( generate_random_specimen(WASHOUT_FILTER_FC_MIN_VALUE, WASHOUT_FILTER_FC_MAX_VALUE, WASHOUT_FILTER_Z_MIN_VALUE, WASHOUT_FILTER_Z_MAX_VALUE) )
         
     # Variables for statistics
     best_specimen = Specimen(0,0,0,0)
