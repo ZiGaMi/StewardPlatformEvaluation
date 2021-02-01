@@ -63,8 +63,8 @@ SAMPLE_NUM = int(( IDEAL_SAMPLE_FREQ * TIME_WINDOW ) + 1.0 )
 # ==================================================
 
 # Cutoff frequency limits
-WASHOUT_FILTER_FC_MIN_VALUE = 0.001
-WASHOUT_FILTER_FC_MAX_VALUE = 1.0
+WASHOUT_FILTER_FC_MIN_VALUE = 0.01
+WASHOUT_FILTER_FC_MAX_VALUE = 20.0
 
 # Damping factor limits
 WASHOUT_FILTER_Z_MIN_VALUE  = 0.005
@@ -76,13 +76,13 @@ WASHOUT_FILTER_Z_MAX_VALUE  = 5.0
 # ==================================================
 
 # Population size
-POPULATION_SIZE = 20
+POPULATION_SIZE = 10
 
 # Number of generations
 GENERATION_SIZE = 1000
 
 # Mutation propability
-MUTATION_PROPABILITY = 0.10
+MUTATION_PROPABILITY = 0.25
 
 # Mutation impact
 MUTATION_MIN_IMPACT = 0.001
@@ -93,13 +93,13 @@ ELITISM_NUM = 2
 
 # Size of tournament
 # NOTE: Must not be smaller than population size
-TURNAMENT_SIZE = 8
+TURNAMENT_SIZE = 4
 
 # Crossover propability
 CROSSOVER_PROPABILITY = 0.50
 
 # Target finess value 
-TARGET_FITNESS = 40.0
+TARGET_FITNESS = 45.0
 
 
 # ==================================================
@@ -112,7 +112,7 @@ INPUT_SIGNAL_ROUTE_TO_ROLL = 3
 INPUT_SIGNAL_ROUTE_TO_PITCH = 4
 INPUT_SIGNAL_ROUTE_TO_YAW = 5
 
-INPUT_SIGNAL_ROUTE = INPUT_SIGNAL_ROUTE_TO_AY
+INPUT_SIGNAL_ROUTE = INPUT_SIGNAL_ROUTE_TO_ROLL
 
 
 ## ****** END OF USER CONFIGURATIONS ******
@@ -768,11 +768,11 @@ def system_model_route_input_signal(inp_sig, sel):
         a[1] = inp_sig
     elif sel == INPUT_SIGNAL_ROUTE_TO_AZ:
         a[2] = inp_sig
-    elif sel == INPUT_SIGNAL_ROUTE_TO_WX:
+    elif sel == INPUT_SIGNAL_ROUTE_TO_ROLL:
         w[0] = inp_sig
-    elif sel == INPUT_SIGNAL_ROUTE_TO_WY:
+    elif sel == INPUT_SIGNAL_ROUTE_TO_PITCH:
         w[1] = inp_sig
-    elif sel == INPUT_SIGNAL_ROUTE_TO_WZ:
+    elif sel == INPUT_SIGNAL_ROUTE_TO_YAW:
         w[2] = inp_sig
     else:
         raise AssertionError
@@ -807,7 +807,7 @@ def generate_stimuli_signal():
 
         
         # Some custom signal
-        CUSTOM_SIG_MAX = 1
+        CUSTOM_SIG_MAX = 10 * np.pi / 180
 
         DELAY_TIME = 0.1
         RISE_TIME = 1
@@ -865,26 +865,27 @@ if __name__ == "__main__":
     # ===============================================================================
     #   START GENERATION OF POPULATION ZERO WITH GOOD SPECIMENS
     # ===============================================================================
-    POPULATION_ZERO_INJECTION_NUM = 2
+    POPULATION_ZERO_INJECTION_NUM = 0
 
+    """
     # Initial good example
-    Wht   =[[0.004684,0.388013],[0.008537,2.466316],[0.980027,2.305855]]
-    Wrtzt =[0.043182,0.214144,1.000000]
-    W12   =[[ 0.284246, 3.014246 ],[0.728802,0.624616]]
-    W11   =[0.994925,0.402123,0.994925]
+    Wht   =[[0.964741,1.494965],[0.007393,0.251256],[0.040468,0.489266]]
+    Wrtzt =[0.180084,0.086882,0.126689]
+    W12   =[[ 0.546391, 1.050634 ],[0.826574,5.000000]]
+    W11   =[0.213651,0.088651,0.499064]
     
     # Add speciment to popolation
     pop.append( generate_specimen(Wht, Wrtzt, W12, W11 ))
 
     # Initial good example
-    Wht   =[[0.004323,0.388013],[0.008537,1.638192],[0.980027,2.305855]]
-    Wrtzt =[0.043182,0.257563,0.936174]
-    W12   =[[ 0.318968, 3.014246 ],[0.607885,0.624616]]
-    W11   =[0.994925,0.402123,1.000000]
-
+    Wht   =[[1.000000,0.969822],[0.004442,0.374053],[0.019950,0.704289]]
+    Wrtzt =[0.256500,0.056088,0.139492]
+    W12   =[[ 0.447659, 2.342578 ],[0.555449,5.000000]]
+    W11   =[0.292774,0.083762,0.603416]
 
     # Add speciment to population
     pop.append( generate_specimen(Wht, Wrtzt, W12, W11 ))
+    """
 
     # ===============================================================================
     #   RANDOM GENERATION OF POPULATION ZERO
