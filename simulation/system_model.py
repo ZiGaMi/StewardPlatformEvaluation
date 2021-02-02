@@ -38,7 +38,7 @@ IDEAL_SAMPLE_FREQ = 500.0
 ## Time window
 #
 # Unit: second
-TIME_WINDOW = 4
+TIME_WINDOW = 10
 
 ## Input signal shape
 INPUT_SIGNAL_FREQ = 0.10
@@ -57,7 +57,7 @@ INPUT_SIGNAL_ROUTE_TO_ROLL = 3
 INPUT_SIGNAL_ROUTE_TO_PITCH = 4
 INPUT_SIGNAL_ROUTE_TO_YAW = 5
 
-INPUT_SIGNAL_ROUTE = INPUT_SIGNAL_ROUTE_TO_ROLL
+INPUT_SIGNAL_ROUTE = INPUT_SIGNAL_ROUTE_TO_AX
 
 # =====================================================
 # WASHOUT FILTER COEFFICINETS
@@ -146,10 +146,9 @@ def system_model_plot_w_signals(ax, x, w):
     ax.plot( x, w[1], "tab:orange", label="wy")
     ax.plot( x, w[2], "c", label="wz")
 
+def system_model_plot_signals(ax, x, y):
+    system_model_plot_a_signals(ax, x, y)
 
-def system_model_plot_signals(ax, x, a, w):
-    system_model_plot_a_signals(ax, x, a)
-    system_model_plot_w_signals(ax, x, w)
 
 def system_model_route_input_signal(inp_sig, sel):
     a = [0] * 3
@@ -171,6 +170,31 @@ def system_model_route_input_signal(inp_sig, sel):
         raise AssertionError
 
     return a, w
+
+def system_model_plot_routed_signal(ax, x, a, w, route, color):
+
+    if route == INPUT_SIGNAL_ROUTE_TO_AX:
+        ax.plot( x, a[0], color, label="ax")
+
+    elif route == INPUT_SIGNAL_ROUTE_TO_AY:
+        ax.plot( x, a[1], color, label="ay")
+
+    elif route == INPUT_SIGNAL_ROUTE_TO_AZ:
+        ax.plot( x, a[2], color, label="az")
+
+    elif route == INPUT_SIGNAL_ROUTE_TO_ROLL:
+        ax.plot( x, w[0], color, label="wx")
+
+    elif route == INPUT_SIGNAL_ROUTE_TO_PITCH:
+        ax.plot( x, w[1], color, label="wy")
+
+    elif route == INPUT_SIGNAL_ROUTE_TO_YAW:
+        ax.plot( x, w[2], color, label="wz")
+
+    else:
+        raise AssertionError
+    
+    return None
 
 
 # ===============================================================================
@@ -581,7 +605,7 @@ if __name__ == "__main__":
 
         
         # Some custom signal
-        CUSTOM_SIG_MAX = 10 * np.pi / 180
+        CUSTOM_SIG_MAX = 1.0 #10 * np.pi / 180
 
         DELAY_TIME = 0.1
         RISE_TIME = 1
@@ -741,47 +765,65 @@ if __name__ == "__main__":
     PLOT_ADJUST_BOTTOM      = 0.05
 
     ## ==============================================================================================
-    # Rotation motion plots
+    #       VESTIBULAR & WASHOUT SENSATIONS + ERROR PLOTS
     ## ==============================================================================================
     #fig, ax = plt.subplots(4, 1, sharex=True)
-    fig, ax = plt.subplots(3, 1, sharex=True)
+    fig, ax = plt.subplots(3, 2, sharex=True)
     fig.suptitle( PLOT_MAIN_TITLE , fontsize=PLOT_MAIN_TITLE_SIZE )
 
     # Subplot 0
-    system_model_plot_signals( ax[0], _d_time, _y_d_a_in, _y_d_beta_in )
-    ax[0].set_title("Input acceleration & rotation", fontsize=PLOT_TITLE_SIZE)
-    ax[0].grid(alpha=0.25)
-    ax[0].legend(loc="upper right")
-    ax[0].set_ylabel('Acceleration [m/s^2],\nAngular rate [rad/s]', fontsize=PLOT_AXIS_LABEL_SIZE)
+    system_model_plot_routed_signal( ax[0][0], _d_time, _y_d_a_in, _y_d_beta_in, INPUT_SIGNAL_ROUTE, "y")
+    ax[0][0].set_title("Input acceleration & rotation", fontsize=PLOT_TITLE_SIZE)
+    ax[0][0].grid(alpha=0.25)
+    ax[0][0].legend(loc="upper right")
+    ax[0][0].set_ylabel('Acceleration [m/s^2],\nRotation [rad]', fontsize=PLOT_AXIS_LABEL_SIZE)
         
     # Subplot 1
-    #system_model_plot_signals( ax[1], _d_time, _y_d_a_sens_test, _y_d_w_sens_test )
-    #system_model_plot_signals( ax[2], _d_time, _y_d_a_wash_sens, _y_d_w_wash_sens )
-    ax[1].plot( _d_time, _y_d_w_sens_test[0], "--w", label="ref" )
-    ax[1].plot( _d_time, _y_d_w_wash_sens[0], "y", label="wash" )
-    ax[1].set_title("Vastibular & washout", fontsize=PLOT_TITLE_SIZE)
-    ax[1].grid(alpha=0.25)
-    ax[1].legend(loc="upper right")
-    ax[1].set_ylabel('Acceleration [m/s^2],\nAngular rate [rad/s]', fontsize=PLOT_AXIS_LABEL_SIZE)
-
-    # Subplot 2
-    """
-    system_model_plot_signals( ax[2], _d_time, _y_d_a_wash, _y_d_w_wash )
-    ax[2].set_title("Washout - actual feeling", fontsize=PLOT_TITLE_SIZE)
-    ax[2].grid(alpha=0.25)
-    ax[2].legend(loc="upper right")
-    ax[2].set_ylabel('Acceleration [m/s^2],\nAngular rate [rad/s]', fontsize=PLOT_AXIS_LABEL_SIZE)
-    """
+    system_model_plot_routed_signal( ax[1][0], _d_time, _y_d_a_sens_test, _y_d_w_sens_test, INPUT_SIGNAL_ROUTE, "--w" )
+    system_model_plot_routed_signal( ax[1][0], _d_time, _y_d_a_wash_sens, _y_d_w_wash_sens, INPUT_SIGNAL_ROUTE, "y" )
+    ax[1][0].set_title("Vastibular & washout", fontsize=PLOT_TITLE_SIZE)
+    ax[1][0].grid(alpha=0.25)
+    ax[1][0].legend(loc="upper right")
+    ax[1][0].set_ylabel('Acceleration [m/s^2],\nAngular rate [rad/s]', fontsize=PLOT_AXIS_LABEL_SIZE)
     
     # Subplot 2
-    system_model_plot_signals( ax[2], _d_time, _y_d_a_sens_err, _y_d_w_sens_err )
-    ax[2].set_title("Error in sensation", fontsize=PLOT_TITLE_SIZE)
-    ax[2].grid(alpha=0.25)
-    ax[2].legend(loc="upper right")
-    ax[2].set_ylabel('Acceleration [m/s^2],\nAngular rate [rad/s]', fontsize=PLOT_AXIS_LABEL_SIZE)
-    ax[2].set_xlabel('Time [s]', fontsize=PLOT_AXIS_LABEL_SIZE)
+    system_model_plot_signals( ax[2][0], _d_time, _y_d_a_sens_err )
+    system_model_plot_signals( ax[2][0], _d_time, _y_d_w_sens_err )
+    ax[2][0].set_title("Error in sensation", fontsize=PLOT_TITLE_SIZE)
+    ax[2][0].grid(alpha=0.25)
+    ax[2][0].legend(loc="upper right")
+    ax[2][0].set_ylabel('Acceleration [m/s^2],\nAngular rate [rad/s]', fontsize=PLOT_AXIS_LABEL_SIZE)
+    ax[2][0].set_xlabel('Time [s]', fontsize=PLOT_AXIS_LABEL_SIZE)
 
     plt.subplots_adjust(left=PLOT_ADJUST_LEFT, right=PLOT_ADJUST_RIGHT, top=PLOT_ADJUST_TOP, bottom=PLOT_ADJUST_BOTTOM)
+    
+
+    ## ==============================================================================================
+    #       WASHOUT FILTER OUTPUTS
+    ## ==============================================================================================
+    #fig2, ax2 = plt.subplots(2, 1, sharex=True)
+    #fig2.suptitle("Washout filter outpus", fontsize=PLOT_MAIN_TITLE_SIZE)
+
+    # Subplot 0
+    system_model_plot_routed_signal( ax[0][1], _d_time, _y_d_a_in, _y_d_beta_in, INPUT_SIGNAL_ROUTE, "y")
+    ax[0][1].set_title("Input acceleration & rotation", fontsize=PLOT_TITLE_SIZE)
+    ax[0][1].grid(alpha=0.25)
+    ax[0][1].legend(loc="upper right")
+    ax[0][1].set_ylabel('Acceleration [m/s^2],\nRotation [rad]', fontsize=PLOT_AXIS_LABEL_SIZE)
+    
+    # Subplot 1
+    system_model_plot_signals( ax[1][1], _d_time, _y_d_a_wash )
+    ax[1][1].set_title("Washout filter outputs - ACCELERATIONS", fontsize=PLOT_TITLE_SIZE)
+    ax[1][1].grid(alpha=0.25)
+    ax[1][1].legend(loc="upper right")
+    ax[1][1].set_ylabel('Acceleration [m/s^2],\nRotations [rad]', fontsize=PLOT_AXIS_LABEL_SIZE)
+
+    system_model_plot_signals( ax[2][1], _d_time, _y_d_w_wash )
+    ax[2][1].set_title("Washout filter outputs - ROTATIONS", fontsize=PLOT_TITLE_SIZE)
+    ax[2][1].grid(alpha=0.25)
+    ax[2][1].legend(loc="upper right")
+    ax[2][1].set_ylabel('Rotations [rad]', fontsize=PLOT_AXIS_LABEL_SIZE)
+
     plt.show()
     
 
