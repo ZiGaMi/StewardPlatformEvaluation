@@ -38,12 +38,12 @@ IDEAL_SAMPLE_FREQ = 500.0
 ## Time window
 #
 # Unit: second
-TIME_WINDOW = 10
+TIME_WINDOW = 26
 
 ## Input signal shape
-INPUT_SIGNAL_FREQ = 0.10
-INPUT_SIGNAL_AMPLITUDE = 0.5
-INPUT_SIGNAL_OFFSET = 0.5
+INPUT_SIGNAL_FREQ = 0.075
+INPUT_SIGNAL_AMPLITUDE = 1
+INPUT_SIGNAL_OFFSET = 1
 INPUT_SIGNAL_PHASE = -0.25
 
 ## Mux input signal
@@ -101,9 +101,11 @@ WASHOUT_HPF_W11_FC_YAW      = 1.0
 
 ###########################################################################################
 ## HERE COPY COEFFICIENT FROM GA RESULTS 
-Wht   =[[0.003721,0.420203],[0.010176,2.782087],[0.941817,0.333087]]
-Wrtzt =[0.043192,0.173673,0.816260]
-W12   =[[ 0.291475, 3.364404 ],[0.994950,2.407105]]
+
+## NOTE: This parameters are tuned for pitch/surge & roll/sway
+Wht   =[[0.003721,0.420203],[0.004442,0.374053],[0.941817,0.333087]]
+Wrtzt =[0.043192,0.056088,0.816260]
+W12   =[[ 0.291475, 3.364404 ],[0.555449,5.000000]]
 W11   =[0.974932,0.402213,0.006893]
 ###########################################################################################
 
@@ -174,22 +176,22 @@ def system_model_route_input_signal(inp_sig, sel):
 def system_model_plot_routed_signal(ax, x, a, w, route, color):
 
     if route == INPUT_SIGNAL_ROUTE_TO_AX:
-        ax.plot( x, a[0], color, label="ax")
+        ax.plot( x, a[0], color, label="x")
 
     elif route == INPUT_SIGNAL_ROUTE_TO_AY:
-        ax.plot( x, a[1], color, label="ay")
+        ax.plot( x, a[1], color, label="y")
 
     elif route == INPUT_SIGNAL_ROUTE_TO_AZ:
-        ax.plot( x, a[2], color, label="az")
+        ax.plot( x, a[2], color, label="z")
 
     elif route == INPUT_SIGNAL_ROUTE_TO_ROLL:
-        ax.plot( x, w[0], color, label="wx")
+        ax.plot( x, w[0], color, label="x")
 
     elif route == INPUT_SIGNAL_ROUTE_TO_PITCH:
-        ax.plot( x, w[1], color, label="wy")
+        ax.plot( x, w[1], color, label="y")
 
     elif route == INPUT_SIGNAL_ROUTE_TO_YAW:
-        ax.plot( x, w[2], color, label="wz")
+        ax.plot( x, w[2], color, label="z")
 
     else:
         raise AssertionError
@@ -207,7 +209,7 @@ class DriverFrame:
     # Vector from platform origin to drivers head
     # [x, y, z]
     # Note: Z axis is pointing downwards
-    DRIVER_FRAME_VECTOR = [0.0, 0.0, -1.3]
+    DRIVER_FRAME_VECTOR = [0.0, 0.0, -0.02]
 
     # ===============================================================================
     # @brief: Initialization of conversion to driver frame
@@ -600,12 +602,13 @@ if __name__ == "__main__":
     
     # Generate stimuli signals
     for n in range(SAMPLE_NUM):
-        #_x[n] = ( _fg.generate( _time[n] ))
+        _x[n] = ( _fg.generate( _time[n] ))
         #_x[n] = 0
 
-        
+        """
         # Some custom signal
-        CUSTOM_SIG_MAX = 1.0 #10 * np.pi / 180
+        CUSTOM_SIG_MAX = 2
+        #CUSTOM_SIG_MAX = 10 * np.pi / 180
 
         DELAY_TIME = 0.1
         RISE_TIME = 1
@@ -629,7 +632,7 @@ if __name__ == "__main__":
         
         else:
             _x[n] = 0
-         
+         """
         
         
 
@@ -695,6 +698,8 @@ if __name__ == "__main__":
             # =====================================================================
             #   MODEL INPUT SELECTION
             # =====================================================================
+            if _time[n] > 8.0:
+                INPUT_SIGNAL_ROUTE = INPUT_SIGNAL_ROUTE_TO_AY
             _a_in, _beta_in = system_model_route_input_signal( _x[n], INPUT_SIGNAL_ROUTE )
 
 
@@ -773,26 +778,31 @@ if __name__ == "__main__":
 
     # Subplot 0
     system_model_plot_routed_signal( ax[0][0], _d_time, _y_d_a_in, _y_d_beta_in, INPUT_SIGNAL_ROUTE, "y")
+    system_model_plot_routed_signal( ax[0][0], _d_time, _y_d_a_in, _y_d_beta_in, INPUT_SIGNAL_ROUTE_TO_AX, "g")
     ax[0][0].set_title("Input acceleration & rotation", fontsize=PLOT_TITLE_SIZE)
     ax[0][0].grid(alpha=0.25)
     ax[0][0].legend(loc="upper right")
     ax[0][0].set_ylabel('Acceleration [m/s^2],\nRotation [rad]', fontsize=PLOT_AXIS_LABEL_SIZE)
         
     # Subplot 1
-    system_model_plot_routed_signal( ax[1][0], _d_time, _y_d_a_sens_test, _y_d_w_sens_test, INPUT_SIGNAL_ROUTE, "--w" )
-    system_model_plot_routed_signal( ax[1][0], _d_time, _y_d_a_wash_sens, _y_d_w_wash_sens, INPUT_SIGNAL_ROUTE, "y" )
+    #system_model_plot_routed_signal( ax[1][0], _d_time, _y_d_a_sens_test, _y_d_w_sens_test, INPUT_SIGNAL_ROUTE, "--w" )
+    system_model_plot_routed_signal( ax[1][0], _d_time, _y_d_a_sens_test, _y_d_w_sens_test, INPUT_SIGNAL_ROUTE_TO_AY, "--w" )
+    system_model_plot_routed_signal( ax[1][0], _d_time, _y_d_a_sens_test, _y_d_w_sens_test, INPUT_SIGNAL_ROUTE_TO_AX, "--w" )
+    system_model_plot_routed_signal( ax[1][0], _d_time, _y_d_a_wash_sens, _y_d_w_wash_sens, INPUT_SIGNAL_ROUTE_TO_AY, "r" )
+    system_model_plot_routed_signal( ax[1][0], _d_time, _y_d_a_wash_sens, _y_d_w_wash_sens, INPUT_SIGNAL_ROUTE_TO_AX, "g" )
     ax[1][0].set_title("Vastibular & washout", fontsize=PLOT_TITLE_SIZE)
     ax[1][0].grid(alpha=0.25)
     ax[1][0].legend(loc="upper right")
     ax[1][0].set_ylabel('Acceleration [m/s^2],\nAngular rate [rad/s]', fontsize=PLOT_AXIS_LABEL_SIZE)
     
     # Subplot 2
-    system_model_plot_signals( ax[2][0], _d_time, _y_d_a_sens_err )
-    system_model_plot_signals( ax[2][0], _d_time, _y_d_w_sens_err )
-    ax[2][0].set_title("Error in sensation", fontsize=PLOT_TITLE_SIZE)
+    #system_model_plot_signals( ax[2][0], _d_time, _y_d_a_sens_err )
+    system_model_plot_routed_signal( ax[2][0], _d_time, _y_d_a_sens_err, _y_d_w_sens_test, INPUT_SIGNAL_ROUTE_TO_AX, "g" )
+    system_model_plot_routed_signal( ax[2][0], _d_time, _y_d_a_sens_err, _y_d_w_sens_test, INPUT_SIGNAL_ROUTE_TO_AY, "r" )
+    ax[2][0].set_title("Error in sensation - ACCELERATIONS", fontsize=PLOT_TITLE_SIZE)
     ax[2][0].grid(alpha=0.25)
     ax[2][0].legend(loc="upper right")
-    ax[2][0].set_ylabel('Acceleration [m/s^2],\nAngular rate [rad/s]', fontsize=PLOT_AXIS_LABEL_SIZE)
+    ax[2][0].set_ylabel('Acceleration [m/s^2]', fontsize=PLOT_AXIS_LABEL_SIZE)
     ax[2][0].set_xlabel('Time [s]', fontsize=PLOT_AXIS_LABEL_SIZE)
 
     plt.subplots_adjust(left=PLOT_ADJUST_LEFT, right=PLOT_ADJUST_RIGHT, top=PLOT_ADJUST_TOP, bottom=PLOT_ADJUST_BOTTOM)
@@ -803,26 +813,28 @@ if __name__ == "__main__":
     ## ==============================================================================================
     #fig2, ax2 = plt.subplots(2, 1, sharex=True)
     #fig2.suptitle("Washout filter outpus", fontsize=PLOT_MAIN_TITLE_SIZE)
-
-    # Subplot 0
-    system_model_plot_routed_signal( ax[0][1], _d_time, _y_d_a_in, _y_d_beta_in, INPUT_SIGNAL_ROUTE, "y")
-    ax[0][1].set_title("Input acceleration & rotation", fontsize=PLOT_TITLE_SIZE)
-    ax[0][1].grid(alpha=0.25)
-    ax[0][1].legend(loc="upper right")
-    ax[0][1].set_ylabel('Acceleration [m/s^2],\nRotation [rad]', fontsize=PLOT_AXIS_LABEL_SIZE)
     
     # Subplot 1
-    system_model_plot_signals( ax[1][1], _d_time, _y_d_a_wash )
-    ax[1][1].set_title("Washout filter outputs - ACCELERATIONS", fontsize=PLOT_TITLE_SIZE)
+    system_model_plot_signals( ax[0][1], _d_time, _y_d_a_wash )
+    ax[0][1].set_title("Washout filter outputs - ACCELERATIONS", fontsize=PLOT_TITLE_SIZE)
+    ax[0][1].grid(alpha=0.25)
+    ax[0][1].legend(loc="upper right")
+    ax[0][1].set_ylabel('Acceleration [m/s^2],\nRotations [rad]', fontsize=PLOT_AXIS_LABEL_SIZE)
+
+    # Subplot 2
+    system_model_plot_signals( ax[1][1], _d_time, _y_d_w_wash )
+    ax[1][1].set_title("Washout filter outputs - ROTATIONS", fontsize=PLOT_TITLE_SIZE)
     ax[1][1].grid(alpha=0.25)
     ax[1][1].legend(loc="upper right")
-    ax[1][1].set_ylabel('Acceleration [m/s^2],\nRotations [rad]', fontsize=PLOT_AXIS_LABEL_SIZE)
+    ax[1][1].set_ylabel('Rotations [rad]', fontsize=PLOT_AXIS_LABEL_SIZE)
 
-    system_model_plot_signals( ax[2][1], _d_time, _y_d_w_wash )
-    ax[2][1].set_title("Washout filter outputs - ROTATIONS", fontsize=PLOT_TITLE_SIZE)
+    # Subplot 3
+    system_model_plot_signals( ax[2][1], _d_time, _y_d_w_sens_err )
+    ax[2][1].set_title("Error in sensation - ROTATIONS", fontsize=PLOT_TITLE_SIZE)
     ax[2][1].grid(alpha=0.25)
     ax[2][1].legend(loc="upper right")
-    ax[2][1].set_ylabel('Rotations [rad]', fontsize=PLOT_AXIS_LABEL_SIZE)
+    ax[2][1].set_ylabel('Angular rate [rad/s]', fontsize=PLOT_AXIS_LABEL_SIZE)
+    ax[2][1].set_xlabel('Time [s]', fontsize=PLOT_AXIS_LABEL_SIZE)
 
     plt.show()
     

@@ -1,0 +1,25 @@
+
+***************************************************************************
+			DESCRIPTION
+***************************************************************************
+DATE: 03.02.2021
+STIMULI: Acceleration across X & Y axis (custom, 2m/s^2 rectangle, 7.5mHz)
+TIME WINDOW: 26 sec
+
+Usefull coefficient in that evolutions are:
+- Wht.x.fc
+- Wht.x.z
+- Wht.y.fc
+- Wht.y.z
+- Wrtzt.x
+- Wrtzt.y
+- W12.roll.x	
+- W12.roll.z
+- W12.pitch.x	
+- W12.pitch.z
+
+Tuned coefficients for pitch/surge & roll/sway:
+Wht   =[[0.003721,0.420203],[0.004442,0.374053],[0.941817,0.333087]]
+Wrtzt =[0.043192,0.056088,0.816260]
+W12   =[[ 0.291475, 3.364404 ],[0.555449,5.000000]]
+W11   =[0.974932,0.402213,0.006893]
